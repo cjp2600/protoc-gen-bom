@@ -90,7 +90,9 @@ func (e *Role) ToMongo() (*RoleMongo, error) {
 			return &resp, err
 		}
 	}
-	resp.Id = bom.ToObj(e.Id)
+	if len(e.Id) > 0 {
+		resp.Id = bom.ToObj(e.Id)
+	}
 	resp.Name = e.Name
 	// create nested mongo
 	var subRole []*PermissionMongo
@@ -116,6 +118,17 @@ func (e *Role) ToMongo() (*RoleMongo, error) {
 
 func (e *RoleMongo) WithBom(b *bom.Bom) *bom.Bom {
 	return b.WithColl("role")
+}
+func (e *RoleMongo) Insert(bom *bom.Bom) (*RoleMongo, error) {
+	e.Id = primitive.NewObjectID() // create object id
+	res, err := e.WithBom(bom).InsertOne(e)
+	if err != nil {
+		return nil, err
+	}
+	if insertId, ok := res.InsertedID.(primitive.ObjectID); ok {
+		e.Id = insertId
+	}
+	return e, nil
 }
 
 // create MongoDB Model from protobuf (PermissionMongo)
@@ -180,7 +193,9 @@ func (e *Permission) ToMongo() (*PermissionMongo, error) {
 			return &resp, err
 		}
 	}
-	resp.Id = bom.ToObj(e.Id)
+	if len(e.Id) > 0 {
+		resp.Id = bom.ToObj(e.Id)
+	}
 	resp.Service = e.Service
 	resp.Create = e.Create
 	resp.Read = e.Read
@@ -196,6 +211,17 @@ func (e *Permission) ToMongo() (*PermissionMongo, error) {
 
 func (e *PermissionMongo) WithBom(b *bom.Bom) *bom.Bom {
 	return b.WithColl("permission")
+}
+func (e *PermissionMongo) Insert(bom *bom.Bom) (*PermissionMongo, error) {
+	e.Id = primitive.NewObjectID() // create object id
+	res, err := e.WithBom(bom).InsertOne(e)
+	if err != nil {
+		return nil, err
+	}
+	if insertId, ok := res.InsertedID.(primitive.ObjectID); ok {
+		e.Id = insertId
+	}
+	return e, nil
 }
 
 // create MongoDB Model from protobuf (UserMongo)
@@ -284,7 +310,9 @@ func (e *User) ToMongo() (*UserMongo, error) {
 			return &resp, err
 		}
 	}
-	resp.Id = bom.ToObj(e.Id)
+	if len(e.Id) > 0 {
+		resp.Id = bom.ToObj(e.Id)
+	}
 	resp.Active = e.Active
 	resp.FirstName = e.FirstName
 	resp.LastName = e.LastName
@@ -319,6 +347,17 @@ func (e *User) ToMongo() (*UserMongo, error) {
 
 func (e *UserMongo) WithBom(b *bom.Bom) *bom.Bom {
 	return b.WithColl("user")
+}
+func (e *UserMongo) Insert(bom *bom.Bom) (*UserMongo, error) {
+	e.Id = primitive.NewObjectID() // create object id
+	res, err := e.WithBom(bom).InsertOne(e)
+	if err != nil {
+		return nil, err
+	}
+	if insertId, ok := res.InsertedID.(primitive.ObjectID); ok {
+		e.Id = insertId
+	}
+	return e, nil
 }
 
 // create MongoDB Model from protobuf (TokenMongo)
@@ -388,6 +427,13 @@ func (e *Token) ToMongo() (*TokenMongo, error) {
 func (e *TokenMongo) WithBom(b *bom.Bom) *bom.Bom {
 	return b.WithColl("token")
 }
+func (e *TokenMongo) Insert(bom *bom.Bom) (*TokenMongo, error) {
+	_, err := e.WithBom(bom).InsertOne(e)
+	if err != nil {
+		return nil, err
+	}
+	return e, nil
+}
 
 // create MongoDB Model from protobuf (ProviderUsersMongo)
 type ProviderUsersMongo struct {
@@ -443,8 +489,12 @@ func (e *ProviderUsers) ToMongo() (*ProviderUsersMongo, error) {
 			return &resp, err
 		}
 	}
-	resp.ProviderId = bom.ToObj(e.ProviderId)
-	resp.UserId = bom.ToObj(e.UserId)
+	if len(e.ProviderId) > 0 {
+		resp.ProviderId = bom.ToObj(e.ProviderId)
+	}
+	if len(e.UserId) > 0 {
+		resp.UserId = bom.ToObj(e.UserId)
+	}
 	if posthook, ok := interface{}(e).(ProviderUsersMongoWithAfterToMongo); ok {
 		if err := posthook.AfterToMongo(&resp); err != nil {
 			return &resp, err
@@ -455,4 +505,11 @@ func (e *ProviderUsers) ToMongo() (*ProviderUsersMongo, error) {
 
 func (e *ProviderUsersMongo) WithBom(b *bom.Bom) *bom.Bom {
 	return b.WithColl("providerusers")
+}
+func (e *ProviderUsersMongo) Insert(bom *bom.Bom) (*ProviderUsersMongo, error) {
+	_, err := e.WithBom(bom).InsertOne(e)
+	if err != nil {
+		return nil, err
+	}
+	return e, nil
 }

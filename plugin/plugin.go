@@ -55,7 +55,6 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 	p.PluginImports = generator.NewPluginImports(p.Generator)
 	p.localName = generator.FileName(file)
 	p.usePrimitive = false
-
 	for _, msg := range file.GetMessageType() {
 		if bomMessage, ok := p.getMessageOptions(msg); ok {
 			if bomMessage.GetModel() {
@@ -65,6 +64,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateToPB(msg)
 					p.GenerateToObject(msg)
 					p.GenerateBomConnect(msg)
+					p.GenerateInsertMethod(msg)
 				}
 			}
 		}
@@ -100,6 +100,47 @@ func (p *MongoPlugin) getFieldOptions(field *descriptor.FieldDescriptorProto) *b
 		return nil
 	}
 	return opts
+}
+
+//GenerateInsertMethod
+func (p *MongoPlugin) GenerateInsertMethod(message *descriptor.DescriptorProto) {
+	//typeName := p.GenerateName(message.GetName())
+	mName := p.GenerateName(message.GetName())
+	p.usePrimitive = true
+	useId := false
+
+	p.P(`func (e *`, mName, `) Insert(bom *bom.Bom) (*`, mName, `, error) {`)
+
+	for _, field := range message.GetField() {
+		fieldName := field.GetName()
+		fieldName = generator.CamelCase(fieldName)
+
+		bomField := p.getFieldOptions(field)
+		if bomField != nil && bomField.Tag.GetMongoObjectId() {
+			if bomField.GetTag().GetIsID() {
+				useId = true
+				p.P(`e.`, fieldName, ` = primitive.NewObjectID() // create object id`)
+			}
+		}
+	}
+
+	if useId {
+		p.P(`res, err := e.WithBom(bom).InsertOne(e)`)
+	} else {
+		p.P(`_, err := e.WithBom(bom).InsertOne(e)`)
+	}
+	p.P(`if err != nil {`)
+	p.P(`return nil, err`)
+	p.P(`}`)
+
+	if useId {
+		p.P(`if insertId, ok := res.InsertedID.(primitive.ObjectID); ok {`)
+		p.P(`e.Id = insertId`)
+		p.P(`}`)
+	}
+
+	p.P(`return e, nil`)
+	p.P(`}`)
 }
 
 //GenerateBehaviorInterface
