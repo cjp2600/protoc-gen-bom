@@ -212,6 +212,7 @@ type UserMongo struct {
 	Token        *TokenMongo
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	Arguments    map[string]string
 }
 
 // The following are interfaces you can implement for special behavior during Mongo/PB conversions
@@ -263,6 +264,11 @@ func (e *UserMongo) ToPB() (*User, error) {
 	resp.CreatedAt = ptapCreatedAt
 	ptapUpdatedAt, _ := ptypes.TimestampProto(e.UpdatedAt)
 	resp.UpdatedAt = ptapUpdatedAt
+	ttArguments := make(map[string]string)
+	for k, v := range e.Arguments {
+		ttArguments[k] = v
+	}
+	resp.Arguments = ttArguments
 	if posthook, ok := interface{}(e).(UserMongoWithAfterToPB); ok {
 		err = posthook.AfterToPB(resp)
 	}
@@ -298,6 +304,11 @@ func (e *User) ToMongo() (*UserMongo, error) {
 	// create time object
 	utUpdatedAt := time.Unix(e.UpdatedAt.GetSeconds(), int64(e.UpdatedAt.GetNanos()))
 	resp.UpdatedAt = utUpdatedAt
+	ttArguments := make(map[string]string)
+	for k, v := range e.Arguments {
+		ttArguments[k] = v
+	}
+	resp.Arguments = ttArguments
 	if posthook, ok := interface{}(e).(UserMongoWithAfterToMongo); ok {
 		if err := posthook.AfterToMongo(resp); err != nil {
 			return resp, err

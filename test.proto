@@ -85,6 +85,7 @@ message User {
     Token token = 12;
     google.protobuf.Timestamp createdAt = 13;
     google.protobuf.Timestamp updatedAt = 14;
+    map<string, string> arguments = 15; // аргументы условия контракта
 }
 
 message Token {

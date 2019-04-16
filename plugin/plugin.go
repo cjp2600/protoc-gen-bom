@@ -160,6 +160,12 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 			p.P(fieldName, ` `, `primitive.ObjectID`, idName)
 			p.usePrimitive = true
 
+		} else if p.IsMap(field) {
+
+			m := p.GoMapType(nil, field)
+			//_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
+			p.P(fieldName, ` `, m.GoType)
+
 		} else if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
 			if strings.ToLower(goTyp) == "*timestamp.timestamp" {
 				p.P(fieldName, ` time.Time`)
@@ -232,7 +238,24 @@ func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorP
 	}
 	goTyp, _ := p.GoType(des, field)
 	p.In()
-	if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
+	if p.IsMap(field) {
+
+		m := p.GoMapType(nil, field)
+		_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
+		keygoTyp, _ := p.GoType(nil, keyField)
+		keygoTyp = strings.Replace(keygoTyp, "*", "", 1)
+		keygoAliasTyp, _ := p.GoType(nil, keyAliasField)
+		keygoAliasTyp = strings.Replace(keygoAliasTyp, "*", "", 1)
+		//keyCapTyp := generator.CamelCase(keygoTyp)
+		p.P(`tt`, fieldName, ` := make(`, m.GoType, `)`)
+		p.P(`for k, v := range e.`, fieldName, ` {`)
+		p.In()
+		p.P(`tt`, fieldName, `[k] = v`)
+		p.Out()
+		p.P(`}`)
+		p.P(`resp.`, fieldName, ` = tt`, fieldName)
+
+	} else if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
 
 		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
 			p.P(`ptap`, fieldName, `, _ := ptypes.TimestampProto(e.`, fieldName, `)`)
@@ -287,7 +310,26 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 	}
 	goTyp, _ := p.GoType(des, field)
 	p.In()
-	if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
+
+	if p.IsMap(field) {
+
+		m := p.GoMapType(nil, field)
+		_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
+		keygoTyp, _ := p.GoType(nil, keyField)
+		keygoTyp = strings.Replace(keygoTyp, "*", "", 1)
+		keygoAliasTyp, _ := p.GoType(nil, keyAliasField)
+		keygoAliasTyp = strings.Replace(keygoAliasTyp, "*", "", 1)
+		//keyCapTyp := generator.CamelCase(keygoTyp)
+		p.P(`tt`, fieldName, ` := make(`, m.GoType, `)`)
+
+		p.P(`for k, v := range e.`, fieldName, ` {`)
+		p.In()
+		p.P(`tt`, fieldName, `[k] = v`)
+		p.Out()
+		p.P(`}`)
+		p.P(`resp.`, fieldName, ` = tt`, fieldName)
+
+	} else if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
 
 		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
 			p.useTime = true
