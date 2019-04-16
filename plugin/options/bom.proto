@@ -1,0 +1,62 @@
+syntax = "proto2";
+package bom;
+
+import "google/protobuf/descriptor.proto";
+
+// Currently no file options
+extend google.protobuf.FileOptions {
+  optional BomFileOptions file_opts = 99432;
+}
+
+message BomFileOptions {
+}
+
+message MongoObject {
+}
+
+// Validation rules applied at the message level
+extend google.protobuf.MessageOptions {
+    // ormable will cause orm code to be generated for this message/object
+    optional BomMessageOptions opts = 99432;
+}
+
+message BomMessageOptions {
+  required bool model = 1;
+  optional bool crud = 2;
+  optional string table = 3;
+  optional string collection = 4;
+}
+
+// Field level specifications
+extend google.protobuf.FieldOptions {
+    optional BomFieldOptions field = 99432;
+}
+
+message BomFieldOptions {
+    optional BomTag tag = 1;
+}
+
+message BomTag {
+    optional bool isID = 3;
+    optional bool skip = 4;
+    optional bool mongoObjectId = 5;
+    optional bool update = 6;
+}
+
+// To be used in (leiu of) the interceptor
+extend google.protobuf.ServiceOptions {
+  optional AutoServerOptions server = 99432;
+}
+
+message AutoServerOptions {
+  optional bool autogen = 1;
+  optional bool txn_middleware = 2;
+}
+
+extend google.protobuf.MethodOptions {
+  optional MethodOptions method = 99432;
+}
+
+message MethodOptions {
+  optional string object_type = 1;
+}
