@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/cjp2600/bom v1.0.4
-	github.com/cjp2600/protoc-gen-bom v1.0.0 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-stack/stack v1.8.0
 	github.com/gogo/protobuf v1.2.1
