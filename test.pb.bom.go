@@ -52,11 +52,11 @@ type RoleMongoWithAfterToPB interface {
 }
 
 func (e *RoleMongo) ToPB() (*Role, error) {
-	var resp *Role
+	var resp Role
 	var err error
 	if prehook, ok := interface{}(e).(RoleMongoWithBeforeToPB); ok {
-		if err = prehook.BeforeToPB(resp); err != nil {
-			return resp, err
+		if err = prehook.BeforeToPB(&resp); err != nil {
+			return &resp, err
 		}
 	}
 	resp.Id = e.Id.Hex()
@@ -76,18 +76,18 @@ func (e *RoleMongo) ToPB() (*Role, error) {
 	}
 	resp.Role = subRole
 	if posthook, ok := interface{}(e).(RoleMongoWithAfterToPB); ok {
-		err = posthook.AfterToPB(resp)
+		err = posthook.AfterToPB(&resp)
 	}
-	return resp, err
+	return &resp, err
 }
 
 // ToMongo runs the BeforeToMongo hook if present, converts the fields of this
 // object to Mongo format, runs the AfterToMongo hook, then returns the Mongo object
 func (e *Role) ToMongo() (*RoleMongo, error) {
-	var resp *RoleMongo
+	var resp RoleMongo
 	if prehook, ok := interface{}(e).(RoleMongoWithBeforeToMongo); ok {
-		if err := prehook.BeforeToMongo(resp); err != nil {
-			return resp, err
+		if err := prehook.BeforeToMongo(&resp); err != nil {
+			return &resp, err
 		}
 	}
 	resp.Id = bom.ToObj(e.Id)
@@ -107,11 +107,11 @@ func (e *Role) ToMongo() (*RoleMongo, error) {
 	}
 	resp.Role = subRole
 	if posthook, ok := interface{}(e).(RoleMongoWithAfterToMongo); ok {
-		if err := posthook.AfterToMongo(resp); err != nil {
-			return resp, err
+		if err := posthook.AfterToMongo(&resp); err != nil {
+			return &resp, err
 		}
 	}
-	return resp, nil
+	return &resp, nil
 }
 
 func (e *RoleMongo) WithBom(b *bom.Bom) *bom.Bom {
@@ -152,11 +152,11 @@ type PermissionMongoWithAfterToPB interface {
 }
 
 func (e *PermissionMongo) ToPB() (*Permission, error) {
-	var resp *Permission
+	var resp Permission
 	var err error
 	if prehook, ok := interface{}(e).(PermissionMongoWithBeforeToPB); ok {
-		if err = prehook.BeforeToPB(resp); err != nil {
-			return resp, err
+		if err = prehook.BeforeToPB(&resp); err != nil {
+			return &resp, err
 		}
 	}
 	resp.Id = e.Id.Hex()
@@ -166,18 +166,18 @@ func (e *PermissionMongo) ToPB() (*Permission, error) {
 	resp.Update = e.Update
 	resp.Delete = e.Delete
 	if posthook, ok := interface{}(e).(PermissionMongoWithAfterToPB); ok {
-		err = posthook.AfterToPB(resp)
+		err = posthook.AfterToPB(&resp)
 	}
-	return resp, err
+	return &resp, err
 }
 
 // ToMongo runs the BeforeToMongo hook if present, converts the fields of this
 // object to Mongo format, runs the AfterToMongo hook, then returns the Mongo object
 func (e *Permission) ToMongo() (*PermissionMongo, error) {
-	var resp *PermissionMongo
+	var resp PermissionMongo
 	if prehook, ok := interface{}(e).(PermissionMongoWithBeforeToMongo); ok {
-		if err := prehook.BeforeToMongo(resp); err != nil {
-			return resp, err
+		if err := prehook.BeforeToMongo(&resp); err != nil {
+			return &resp, err
 		}
 	}
 	resp.Id = bom.ToObj(e.Id)
@@ -187,11 +187,11 @@ func (e *Permission) ToMongo() (*PermissionMongo, error) {
 	resp.Update = e.Update
 	resp.Delete = e.Delete
 	if posthook, ok := interface{}(e).(PermissionMongoWithAfterToMongo); ok {
-		if err := posthook.AfterToMongo(resp); err != nil {
-			return resp, err
+		if err := posthook.AfterToMongo(&resp); err != nil {
+			return &resp, err
 		}
 	}
-	return resp, nil
+	return &resp, nil
 }
 
 func (e *PermissionMongo) WithBom(b *bom.Bom) *bom.Bom {
@@ -239,11 +239,11 @@ type UserMongoWithAfterToPB interface {
 }
 
 func (e *UserMongo) ToPB() (*User, error) {
-	var resp *User
+	var resp User
 	var err error
 	if prehook, ok := interface{}(e).(UserMongoWithBeforeToPB); ok {
-		if err = prehook.BeforeToPB(resp); err != nil {
-			return resp, err
+		if err = prehook.BeforeToPB(&resp); err != nil {
+			return &resp, err
 		}
 	}
 	resp.Id = e.Id.Hex()
@@ -270,18 +270,18 @@ func (e *UserMongo) ToPB() (*User, error) {
 	}
 	resp.Arguments = ttArguments
 	if posthook, ok := interface{}(e).(UserMongoWithAfterToPB); ok {
-		err = posthook.AfterToPB(resp)
+		err = posthook.AfterToPB(&resp)
 	}
-	return resp, err
+	return &resp, err
 }
 
 // ToMongo runs the BeforeToMongo hook if present, converts the fields of this
 // object to Mongo format, runs the AfterToMongo hook, then returns the Mongo object
 func (e *User) ToMongo() (*UserMongo, error) {
-	var resp *UserMongo
+	var resp UserMongo
 	if prehook, ok := interface{}(e).(UserMongoWithBeforeToMongo); ok {
-		if err := prehook.BeforeToMongo(resp); err != nil {
-			return resp, err
+		if err := prehook.BeforeToMongo(&resp); err != nil {
+			return &resp, err
 		}
 	}
 	resp.Id = bom.ToObj(e.Id)
@@ -310,11 +310,11 @@ func (e *User) ToMongo() (*UserMongo, error) {
 	}
 	resp.Arguments = ttArguments
 	if posthook, ok := interface{}(e).(UserMongoWithAfterToMongo); ok {
-		if err := posthook.AfterToMongo(resp); err != nil {
-			return resp, err
+		if err := posthook.AfterToMongo(&resp); err != nil {
+			return &resp, err
 		}
 	}
-	return resp, nil
+	return &resp, nil
 }
 
 func (e *UserMongo) WithBom(b *bom.Bom) *bom.Bom {
@@ -351,38 +351,38 @@ type TokenMongoWithAfterToPB interface {
 }
 
 func (e *TokenMongo) ToPB() (*Token, error) {
-	var resp *Token
+	var resp Token
 	var err error
 	if prehook, ok := interface{}(e).(TokenMongoWithBeforeToPB); ok {
-		if err = prehook.BeforeToPB(resp); err != nil {
-			return resp, err
+		if err = prehook.BeforeToPB(&resp); err != nil {
+			return &resp, err
 		}
 	}
 	resp.AccessToken = e.AccessToken
 	resp.RefreshToken = e.RefreshToken
 	if posthook, ok := interface{}(e).(TokenMongoWithAfterToPB); ok {
-		err = posthook.AfterToPB(resp)
+		err = posthook.AfterToPB(&resp)
 	}
-	return resp, err
+	return &resp, err
 }
 
 // ToMongo runs the BeforeToMongo hook if present, converts the fields of this
 // object to Mongo format, runs the AfterToMongo hook, then returns the Mongo object
 func (e *Token) ToMongo() (*TokenMongo, error) {
-	var resp *TokenMongo
+	var resp TokenMongo
 	if prehook, ok := interface{}(e).(TokenMongoWithBeforeToMongo); ok {
-		if err := prehook.BeforeToMongo(resp); err != nil {
-			return resp, err
+		if err := prehook.BeforeToMongo(&resp); err != nil {
+			return &resp, err
 		}
 	}
 	resp.AccessToken = e.AccessToken
 	resp.RefreshToken = e.RefreshToken
 	if posthook, ok := interface{}(e).(TokenMongoWithAfterToMongo); ok {
-		if err := posthook.AfterToMongo(resp); err != nil {
-			return resp, err
+		if err := posthook.AfterToMongo(&resp); err != nil {
+			return &resp, err
 		}
 	}
-	return resp, nil
+	return &resp, nil
 }
 
 func (e *TokenMongo) WithBom(b *bom.Bom) *bom.Bom {
@@ -419,38 +419,38 @@ type ProviderUsersMongoWithAfterToPB interface {
 }
 
 func (e *ProviderUsersMongo) ToPB() (*ProviderUsers, error) {
-	var resp *ProviderUsers
+	var resp ProviderUsers
 	var err error
 	if prehook, ok := interface{}(e).(ProviderUsersMongoWithBeforeToPB); ok {
-		if err = prehook.BeforeToPB(resp); err != nil {
-			return resp, err
+		if err = prehook.BeforeToPB(&resp); err != nil {
+			return &resp, err
 		}
 	}
 	resp.ProviderId = e.ProviderId.Hex()
 	resp.UserId = e.UserId.Hex()
 	if posthook, ok := interface{}(e).(ProviderUsersMongoWithAfterToPB); ok {
-		err = posthook.AfterToPB(resp)
+		err = posthook.AfterToPB(&resp)
 	}
-	return resp, err
+	return &resp, err
 }
 
 // ToMongo runs the BeforeToMongo hook if present, converts the fields of this
 // object to Mongo format, runs the AfterToMongo hook, then returns the Mongo object
 func (e *ProviderUsers) ToMongo() (*ProviderUsersMongo, error) {
-	var resp *ProviderUsersMongo
+	var resp ProviderUsersMongo
 	if prehook, ok := interface{}(e).(ProviderUsersMongoWithBeforeToMongo); ok {
-		if err := prehook.BeforeToMongo(resp); err != nil {
-			return resp, err
+		if err := prehook.BeforeToMongo(&resp); err != nil {
+			return &resp, err
 		}
 	}
 	resp.ProviderId = bom.ToObj(e.ProviderId)
 	resp.UserId = bom.ToObj(e.UserId)
 	if posthook, ok := interface{}(e).(ProviderUsersMongoWithAfterToMongo); ok {
-		if err := posthook.AfterToMongo(resp); err != nil {
-			return resp, err
+		if err := posthook.AfterToMongo(&resp); err != nil {
+			return &resp, err
 		}
 	}
-	return resp, nil
+	return &resp, nil
 }
 
 func (e *ProviderUsersMongo) WithBom(b *bom.Bom) *bom.Bom {
