@@ -368,7 +368,11 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 		}
 
 	} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
+
+		p.P(`if len(e.`, fieldName, `) > 0 {`)
 		p.P(`resp.`, fieldName, ` = bom.ToObj(e.`, fieldName, `)`)
+		p.P(`}`)
+
 	} else {
 		p.P(`resp.`, fieldName, ` = e.`, fieldName)
 	}
