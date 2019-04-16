@@ -88,7 +88,11 @@ message User {
 }
 
 message Token {
-    option (bom.opts) = {model: true};
+    option (bom.opts) = {
+         model: true
+         crud: true
+     };
+
     string accessToken = 3;
     string refreshToken = 4;
 }

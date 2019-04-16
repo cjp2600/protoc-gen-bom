@@ -18,8 +18,8 @@ type MongoPlugin struct {
 	generateCrud   bool
 
 	usePrimitive bool
-	useTime bool
-	useStrconv bool
+	useTime      bool
+	useStrconv   bool
 	localName    string
 }
 
@@ -181,7 +181,7 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 //GenerateBomConnect
 func (p *MongoPlugin) GenerateBomConnect(message *descriptor.DescriptorProto) {
 	bomMessage, ok := p.getMessageOptions(message)
-	if ok && bomMessage.GetCrud(){
+	if ok && bomMessage.GetCrud() {
 		p.In()
 		mName := p.GenerateName(message.GetName())
 		collection := strings.ToLower(message.GetName())
@@ -233,11 +233,42 @@ func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorP
 	goTyp, _ := p.GoType(des, field)
 	p.In()
 	if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
+
 		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
-			p.P(`ptap`,fieldName,`, _ := ptypes.TimestampProto(e.`,fieldName, `)`)
+			p.P(`ptap`, fieldName, `, _ := ptypes.TimestampProto(e.`, fieldName, `)`)
 			p.useTime = true
-			p.P(`resp.`, fieldName, ` = ptap`,fieldName)
+			p.P(`resp.`, fieldName, ` = ptap`, fieldName)
+		} else if field.IsMessage() {
+
+			repeated := field.IsRepeated()
+			if repeated {
+				p.P(`// create nested pb`)
+				p.P(`var sub`, fieldName, goTyp)
+				p.P(`if e.`, fieldName, ` != nil {`)
+				p.P(`if len(e.`, fieldName, `) > 0 {`)
+
+				p.P(`for _, b := range `, `e.`, fieldName, `{`)
+				p.P(`pb, err := b.ToPB()`)
+				p.P(`if err != nil {`)
+				p.P(`continue`)
+				p.P(`}`)
+				p.P(`sub`, fieldName, ` = append(sub`, fieldName, `, pb)`)
+				p.P(`}`)
+
+				p.P(`}`)
+				p.P(`}`)
+
+				p.P(`resp.`, fieldName, ` = sub`, fieldName)
+			} else {
+				p.P(`// create single pb`)
+				p.P(`pb`, fieldName, `, _ := e.`, fieldName, `.ToPB()`)
+				p.P(`resp.`, fieldName, ` = pb`, fieldName)
+			}
+
+		} else {
+			p.P(`resp.`, fieldName, ` = e.`, fieldName)
 		}
+
 	} else {
 		if bomField != nil && bomField.Tag.GetMongoObjectId() {
 			p.P(`resp.`, fieldName, ` = e.`, fieldName, `.Hex()`)
@@ -261,11 +292,38 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
 			p.useTime = true
 			p.P(`// create time object`)
-			p.P(`ut`,fieldName,` := time.Unix(e.`,fieldName,`.GetSeconds(), int64(e.`,fieldName,`.GetNanos()))`)
-			p.P(`resp.`, fieldName, ` = ut`,fieldName)
+			p.P(`ut`, fieldName, ` := time.Unix(e.`, fieldName, `.GetSeconds(), int64(e.`, fieldName, `.GetNanos()))`)
+			p.P(`resp.`, fieldName, ` = ut`, fieldName)
+		} else if field.IsMessage() {
+
+			repeated := field.IsRepeated()
+			if repeated {
+				p.P(`// create nested mongo`)
+				p.P(`var sub`, fieldName, p.GenerateName(goTyp))
+				p.P(`if e.`, fieldName, ` != nil {`)
+				p.P(`if len(e.`, fieldName, `) > 0 {`)
+
+				p.P(`for _, b := range `, `e.`, fieldName, `{`)
+				p.P(`pb, err := b.ToMongo()`)
+				p.P(`if err != nil {`)
+				p.P(`continue`)
+				p.P(`}`)
+				p.P(`sub`, fieldName, ` = append(sub`, fieldName, `, pb)`)
+				p.P(`}`)
+
+				p.P(`}`)
+				p.P(`}`)
+
+				p.P(`resp.`, fieldName, ` = sub`, fieldName)
+			} else {
+				p.P(`// create single mongo`)
+				p.P(`pb`, fieldName, `, _ := e.`, fieldName, `.ToMongo()`)
+				p.P(`resp.`, fieldName, ` = pb`, fieldName)
+			}
+
+		} else {
+			p.P(`resp.`, fieldName, ` = e.`, fieldName)
 		}
-
-
 
 	} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
 		p.P(`resp.`, fieldName, ` = bom.ToObj(e.`, fieldName, `)`)

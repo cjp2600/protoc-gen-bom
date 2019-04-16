@@ -61,6 +61,20 @@ func (e *RoleMongo) ToPB() (*Role, error) {
 	}
 	resp.Id = e.Id.Hex()
 	resp.Name = e.Name
+	// create nested pb
+	var subRole []*Permission
+	if e.Role != nil {
+		if len(e.Role) > 0 {
+			for _, b := range e.Role {
+				pb, err := b.ToPB()
+				if err != nil {
+					continue
+				}
+				subRole = append(subRole, pb)
+			}
+		}
+	}
+	resp.Role = subRole
 	if posthook, ok := interface{}(e).(RoleMongoWithAfterToPB); ok {
 		err = posthook.AfterToPB(resp)
 	}
@@ -78,6 +92,20 @@ func (e *Role) ToMongo() (*RoleMongo, error) {
 	}
 	resp.Id = bom.ToObj(e.Id)
 	resp.Name = e.Name
+	// create nested mongo
+	var subRole []*PermissionMongo
+	if e.Role != nil {
+		if len(e.Role) > 0 {
+			for _, b := range e.Role {
+				pb, err := b.ToMongo()
+				if err != nil {
+					continue
+				}
+				subRole = append(subRole, pb)
+			}
+		}
+	}
+	resp.Role = subRole
 	if posthook, ok := interface{}(e).(RoleMongoWithAfterToMongo); ok {
 		if err := posthook.AfterToMongo(resp); err != nil {
 			return resp, err
@@ -223,8 +251,14 @@ func (e *UserMongo) ToPB() (*User, error) {
 	resp.LastName = e.LastName
 	resp.Phone = e.Phone
 	resp.Email = e.Email
+	// create single pb
+	pbRole, _ := e.Role.ToPB()
+	resp.Role = pbRole
 	resp.EmailConfirm = e.EmailConfirm
 	resp.Type = e.Type
+	// create single pb
+	pbToken, _ := e.Token.ToPB()
+	resp.Token = pbToken
 	ptapCreatedAt, _ := ptypes.TimestampProto(e.CreatedAt)
 	resp.CreatedAt = ptapCreatedAt
 	ptapUpdatedAt, _ := ptypes.TimestampProto(e.UpdatedAt)
@@ -250,8 +284,14 @@ func (e *User) ToMongo() (*UserMongo, error) {
 	resp.LastName = e.LastName
 	resp.Phone = e.Phone
 	resp.Email = e.Email
+	// create single mongo
+	pbRole, _ := e.Role.ToMongo()
+	resp.Role = pbRole
 	resp.EmailConfirm = e.EmailConfirm
 	resp.Type = e.Type
+	// create single mongo
+	pbToken, _ := e.Token.ToMongo()
+	resp.Token = pbToken
 	// create time object
 	utCreatedAt := time.Unix(e.CreatedAt.GetSeconds(), int64(e.CreatedAt.GetNanos()))
 	resp.CreatedAt = utCreatedAt
@@ -274,6 +314,68 @@ func (e *UserMongo) WithBom(b *bom.Bom) *bom.Bom {
 type TokenMongo struct {
 	AccessToken  string
 	RefreshToken string
+}
+
+// The following are interfaces you can implement for special behavior during Mongo/PB conversions
+// of type TokenMongo the arg will be the target, the caller the one being converted from
+
+// TokenMongoBeforeToMongo called before default ToMongo code
+type TokenMongoWithBeforeToMongo interface {
+	BeforeToMongo(*TokenMongo) error
+}
+
+// TokenMongoAfterToMongo called after default ToMongo code
+type TokenMongoWithAfterToMongo interface {
+	AfterToMongo(*TokenMongo) error
+}
+
+// TokenMongoBeforeToPB called before default ToPB code
+type TokenMongoWithBeforeToPB interface {
+	BeforeToPB(*Token) error
+}
+
+// TokenMongoAfterToPB called after default ToPB code
+type TokenMongoWithAfterToPB interface {
+	AfterToPB(*Token) error
+}
+
+func (e *TokenMongo) ToPB() (*Token, error) {
+	var resp *Token
+	var err error
+	if prehook, ok := interface{}(e).(TokenMongoWithBeforeToPB); ok {
+		if err = prehook.BeforeToPB(resp); err != nil {
+			return resp, err
+		}
+	}
+	resp.AccessToken = e.AccessToken
+	resp.RefreshToken = e.RefreshToken
+	if posthook, ok := interface{}(e).(TokenMongoWithAfterToPB); ok {
+		err = posthook.AfterToPB(resp)
+	}
+	return resp, err
+}
+
+// ToMongo runs the BeforeToMongo hook if present, converts the fields of this
+// object to Mongo format, runs the AfterToMongo hook, then returns the Mongo object
+func (e *Token) ToMongo() (*TokenMongo, error) {
+	var resp *TokenMongo
+	if prehook, ok := interface{}(e).(TokenMongoWithBeforeToMongo); ok {
+		if err := prehook.BeforeToMongo(resp); err != nil {
+			return resp, err
+		}
+	}
+	resp.AccessToken = e.AccessToken
+	resp.RefreshToken = e.RefreshToken
+	if posthook, ok := interface{}(e).(TokenMongoWithAfterToMongo); ok {
+		if err := posthook.AfterToMongo(resp); err != nil {
+			return resp, err
+		}
+	}
+	return resp, nil
+}
+
+func (e *TokenMongo) WithBom(b *bom.Bom) *bom.Bom {
+	return b.WithColl("token")
 }
 
 // create MongoDB Model from protobuf (ProviderUsersMongo)
