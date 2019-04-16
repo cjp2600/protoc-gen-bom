@@ -369,6 +369,13 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 
 	} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
 
+		if bomField.Tag.GetIsID() {
+			p.usePrimitive = true
+			p.P(`if generateID {`)
+			p.P(`e.`, fieldName, ` = primitive.NewObjectID().Hex()`)
+			p.P(`}`)
+		}
+
 		p.P(`if len(e.`, fieldName, `) > 0 {`)
 		p.P(`resp.`, fieldName, ` = bom.ToObj(e.`, fieldName, `)`)
 		p.P(`}`)
@@ -384,7 +391,7 @@ func (p *MongoPlugin) GenerateToObject(message *descriptor.DescriptorProto) {
 	mName := p.GenerateName(message.GetName())
 	p.P(`// ToMongo runs the BeforeToMongo hook if present, converts the fields of this`)
 	p.P(`// object to Mongo format, runs the AfterToMongo hook, then returns the Mongo object`)
-	p.P(`func (e *`, message.GetName(), `) ToMongo() (*`, mName, `, error) {`)
+	p.P(`func (e *`, message.GetName(), `) ToMongo(generateID bool) (*`, mName, `, error) {`)
 	p.P(`var resp `, mName)
 	p.P(`if prehook, ok := interface{}(e).(`, mName, `WithBeforeToMongo); ok {`)
 	p.P(`if err := prehook.BeforeToMongo(&resp); err != nil {`)
