@@ -25,6 +25,7 @@ message BomMessageOptions {
   optional bool crud = 2;
   optional string table = 3;
   optional string collection = 4;
+  optional string boundMessage = 5;
 }
 
 // Field level specifications

@@ -58,14 +58,21 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 	for _, msg := range file.GetMessageType() {
 		if bomMessage, ok := p.getMessageOptions(msg); ok {
 			if bomMessage.GetModel() {
+				// генерируем основные методы модели
 				p.generateModelsStructures(msg)
+				p.GenerateBehaviorInterface(msg)
+				p.GenerateToPB(msg)
+				p.GenerateToObject(msg)
+				p.GenerateBomConnect(msg)
+				p.GenerateObjectId(msg)
+				// todo: доделать генерацию конвертации в связанную модель
+				//p.GenerateBoundMessage(msg)
+
+				// добавляем круд
 				if bomMessage.GetCrud() {
-					p.GenerateBehaviorInterface(msg)
-					p.GenerateToPB(msg)
-					p.GenerateToObject(msg)
-					p.GenerateBomConnect(msg)
 					p.GenerateInsertMethod(msg)
 				}
+
 			}
 		}
 	}
@@ -102,19 +109,54 @@ func (p *MongoPlugin) getFieldOptions(field *descriptor.FieldDescriptorProto) *b
 	return opts
 }
 
+//GenerateBoundMessage
+func (p *MongoPlugin) GenerateBoundMessage(message *descriptor.DescriptorProto) {
+	if opt, ok := p.getMessageOptions(message); ok {
+		if len(opt.GetBoundMessage()) > 0 {
+			bm := opt.GetBoundMessage()
+			//mName := p.GenerateName(message.GetName())
+			mName := message.GetName()
+			bm = generator.CamelCase(bm)
+
+			p.P(`func (e *`, mName, `) ToBound() (*`, bm, `) {`)
+			for _, field := range message.GetField() {
+				fieldName := field.GetName()
+				fieldName = generator.CamelCase(fieldName)
+			}
+			p.P(`}`)
+		}
+	}
+}
+
+// GenerateObjectId
+func (p *MongoPlugin) GenerateObjectId(message *descriptor.DescriptorProto) {
+	mName := p.GenerateName(message.GetName())
+	p.usePrimitive = true
+	for _, field := range message.GetField() {
+		fieldName := field.GetName()
+		fieldName = generator.CamelCase(fieldName)
+		bomField := p.getFieldOptions(field)
+		if bomField != nil && bomField.Tag.GetMongoObjectId() {
+			if bomField.GetTag().GetIsID() {
+				p.P(`func (e *`, mName, `) With`, fieldName, `(bom *bom.Bom) *bom.Bom {`)
+				p.P(`e.`, fieldName, ` = primitive.NewObjectID() // create object id`)
+				p.P(`return e.WithBom(bom)`)
+				p.P(`}`)
+			}
+		}
+	}
+}
+
 //GenerateInsertMethod
 func (p *MongoPlugin) GenerateInsertMethod(message *descriptor.DescriptorProto) {
 	//typeName := p.GenerateName(message.GetName())
 	mName := p.GenerateName(message.GetName())
 	p.usePrimitive = true
 	useId := false
-
-	p.P(`func (e *`, mName, `) Insert(bom *bom.Bom) (*`, mName, `, error) {`)
-
+	p.P(`func (e *`, mName, `) InsertOne(bom *bom.Bom) (*`, mName, `, error) {`)
 	for _, field := range message.GetField() {
 		fieldName := field.GetName()
 		fieldName = generator.CamelCase(fieldName)
-
 		bomField := p.getFieldOptions(field)
 		if bomField != nil && bomField.Tag.GetMongoObjectId() {
 			if bomField.GetTag().GetIsID() {
@@ -123,7 +165,6 @@ func (p *MongoPlugin) GenerateInsertMethod(message *descriptor.DescriptorProto) 
 			}
 		}
 	}
-
 	if useId {
 		p.P(`res, err := e.WithBom(bom).InsertOne(e)`)
 	} else {
@@ -132,13 +173,11 @@ func (p *MongoPlugin) GenerateInsertMethod(message *descriptor.DescriptorProto) 
 	p.P(`if err != nil {`)
 	p.P(`return nil, err`)
 	p.P(`}`)
-
 	if useId {
 		p.P(`if insertId, ok := res.InsertedID.(primitive.ObjectID); ok {`)
 		p.P(`e.Id = insertId`)
 		p.P(`}`)
 	}
-
 	p.P(`return e, nil`)
 	p.P(`}`)
 }
@@ -171,7 +210,6 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 	p.P(`type `, p.GenerateName(message.GetName()), ` struct {`)
 	oneofs := make(map[string]struct{})
 	for _, field := range message.GetField() {
-
 		des := &generator.Descriptor{
 			DescriptorProto: message,
 		}
@@ -189,24 +227,18 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 				oneofs[fieldName] = struct{}{}
 			}
 		}
-
 		bomField := p.getFieldOptions(field)
 		if bomField != nil && bomField.Tag.GetMongoObjectId() {
-
 			idName := ""
 			if bomField.Tag.GetIsID() {
 				idName = "`_id, omitempty`"
 			}
-
 			p.P(fieldName, ` `, `primitive.ObjectID`, idName)
 			p.usePrimitive = true
-
 		} else if p.IsMap(field) {
-
 			m := p.GoMapType(nil, field)
 			//_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
 			p.P(fieldName, ` `, m.GoType)
-
 		} else if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
 			if strings.ToLower(goTyp) == "*timestamp.timestamp" {
 				p.P(fieldName, ` time.Time`)
@@ -214,11 +246,9 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 			} else {
 				p.P(fieldName, ` `, p.GenerateName(goTyp))
 			}
-
 		} else {
 			p.P(fieldName, ` `, goTyp)
 		}
-
 	}
 	p.P(`}`)
 	p.Out()
@@ -228,7 +258,7 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 //GenerateBomConnect
 func (p *MongoPlugin) GenerateBomConnect(message *descriptor.DescriptorProto) {
 	bomMessage, ok := p.getMessageOptions(message)
-	if ok && bomMessage.GetCrud() {
+	if ok {
 		p.In()
 		mName := p.GenerateName(message.GetName())
 		collection := strings.ToLower(message.GetName())
@@ -273,14 +303,12 @@ func (p *MongoPlugin) GenerateToPB(message *descriptor.DescriptorProto) {
 func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorProto, message *descriptor.DescriptorProto, bomField *bom.BomFieldOptions) {
 	fieldName := field.GetName()
 	fieldName = generator.CamelCase(fieldName)
-
 	des := &generator.Descriptor{
 		DescriptorProto: message,
 	}
 	goTyp, _ := p.GoType(des, field)
 	p.In()
 	if p.IsMap(field) {
-
 		m := p.GoMapType(nil, field)
 		_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
 		keygoTyp, _ := p.GoType(nil, keyField)
