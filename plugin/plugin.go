@@ -131,13 +131,13 @@ func (p *MongoPlugin) GenerateBoundMessage(message *descriptor.DescriptorProto) 
 // GenerateObjectId
 func (p *MongoPlugin) GenerateObjectId(message *descriptor.DescriptorProto) {
 	mName := p.GenerateName(message.GetName())
-	p.usePrimitive = true
 	for _, field := range message.GetField() {
 		fieldName := field.GetName()
 		fieldName = generator.CamelCase(fieldName)
 		bomField := p.getFieldOptions(field)
 		if bomField != nil && bomField.Tag.GetMongoObjectId() {
 			if bomField.GetTag().GetIsID() {
+				p.usePrimitive = true
 				p.P(`func (e *`, mName, `) With`, fieldName, `(bom *bom.Bom) *bom.Bom {`)
 				p.P(`e.`, fieldName, ` = primitive.NewObjectID() // create object id`)
 				p.P(`return e.WithBom(bom)`)
