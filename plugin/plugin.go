@@ -220,6 +220,12 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 		goTyp, _ := p.GoType(des, field)
 		fieldName = generator.CamelCase(fieldName)
 
+		bomField := p.getFieldOptions(field)
+		if bomField != nil && bomField.Tag.GetSkip() {
+			// skip field
+			continue
+		}
+
 		if oneOf {
 			if _, ok := oneofs[fieldName]; ok {
 				continue
@@ -227,7 +233,7 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 				oneofs[fieldName] = struct{}{}
 			}
 		}
-		bomField := p.getFieldOptions(field)
+
 		if bomField != nil && bomField.Tag.GetMongoObjectId() {
 			idName := ""
 			if bomField.Tag.GetIsID() {
