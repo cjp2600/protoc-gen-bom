@@ -285,7 +285,7 @@ func (p *MongoPlugin) GenerateFindOneMethod(message *descriptor.DescriptorProto)
 			bomField := p.getFieldOptions(field)
 			if bomField != nil && bomField.Tag.GetMongoObjectId() {
 				fn := strings.ToLower(fieldName)
-				if fieldName == "id" {
+				if fn == "id" {
 					fn = "_id"
 				}
 				p.P(` Where("`, fn, `", bom.ToObj(`, fieldName, `)).`)
