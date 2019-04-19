@@ -67,7 +67,6 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 
 				p.GenerateToPB(msg)
 				p.GenerateToObject(msg)
-				p.GenerateBomConnection(msg)
 				p.GenerateObjectId(msg)
 				// todo: доделать генерацию конвертации в связанную модель
 				//p.GenerateBoundMessage(msg)
@@ -75,6 +74,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 				// добавляем круд
 				if bomMessage.GetCrud() {
 					p.useCrud = true
+					p.GenerateBomConnection(msg)
 					p.GenerateContructor(msg)
 					p.GenerateInsertMethod(msg)
 					p.GenerateFindOneMethod(msg)
@@ -205,7 +205,7 @@ func (p *MongoPlugin) GenerateBomConnection(message *descriptor.DescriptorProto)
 	gName := p.GenerateName(message.GetName())
 	p.P()
 	p.P(`// Bom connect`)
-	p.P(`func (e *`, gName, `) SetBom(bom *Bom) *`, gName, ` {`)
+	p.P(`func (e *`, gName, `) SetBom(bom *bom.Bom) *`, gName, ` {`)
 	p.P(` e.bom = bom`)
 	p.P(` return e`)
 	p.P(`}`)
