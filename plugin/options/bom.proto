@@ -42,6 +42,7 @@ message BomTag {
     optional bool skip = 4;
     optional bool mongoObjectId = 5;
     optional bool update = 6;
+    optional bool additional = 7;
 }
 
 // To be used in (leiu of) the interceptor

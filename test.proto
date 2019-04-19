@@ -76,6 +76,7 @@ message User {
 
     string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
     bool active = 2;
+
     string firstName = 3;
     string lastName = 4;
     string phone = 6;
@@ -87,6 +88,7 @@ message User {
     google.protobuf.Timestamp createdAt = 13;
     google.protobuf.Timestamp updatedAt = 14;
     map<string, string> arguments = 15; // аргументы условия контракта
+    repeated string products = 16 [(bom.field).tag = {mongoObjectId:true}]; // массив учвсвующих в продуктов
 }
 
 message ShortUser {

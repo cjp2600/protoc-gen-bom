@@ -235,12 +235,19 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 		}
 
 		if bomField != nil && bomField.Tag.GetMongoObjectId() {
-			idName := ""
-			if bomField.Tag.GetIsID() {
-				idName = "`_id, omitempty`"
+
+			repeated := field.IsRepeated()
+			if repeated {
+				p.P(fieldName, ` `, `[]primitive.ObjectID`)
+			} else {
+				idName := ""
+				if bomField.Tag.GetIsID() {
+					idName = "`_id, omitempty`"
+				}
+				p.P(fieldName, ` `, `primitive.ObjectID`, idName)
 			}
-			p.P(fieldName, ` `, `primitive.ObjectID`, idName)
 			p.usePrimitive = true
+
 		} else if p.IsMap(field) {
 			m := p.GoMapType(nil, field)
 			//_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
@@ -369,7 +376,22 @@ func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorP
 
 	} else {
 		if bomField != nil && bomField.Tag.GetMongoObjectId() {
-			p.P(`resp.`, fieldName, ` = e.`, fieldName, `.Hex()`)
+
+			repeated := field.IsRepeated()
+			if repeated {
+
+				p.P(`if len(e.`, fieldName, `) > 0 {`)
+				p.P(`var sub`, fieldName, goTyp)
+				p.P(`for _, b := range `, `e.`, fieldName, `{`)
+				p.P(`sub`, fieldName, ` = append(sub`, fieldName, `, b.Hex())`)
+				p.P(`}`)
+				p.P(`resp.`, fieldName, ` = sub`, fieldName)
+				p.P(`}`)
+
+			} else {
+				p.P(`resp.`, fieldName, ` = e.`, fieldName, `.Hex()`)
+			}
+
 		} else {
 			p.P(`resp.`, fieldName, ` = e.`, fieldName)
 		}
@@ -444,9 +466,16 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 
 	} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
 
-		p.P(`if len(e.`, fieldName, `) > 0 {`)
-		p.P(`resp.`, fieldName, ` = bom.ToObj(e.`, fieldName, `)`)
-		p.P(`}`)
+		repeated := field.IsRepeated()
+		if repeated {
+			p.P(`if len(e.`, fieldName, `) > 0 {`)
+			p.P(`resp.`, fieldName, ` = bom.ToObjects(e.`, fieldName, `)`)
+			p.P(`}`)
+		} else {
+			p.P(`if len(e.`, fieldName, `) > 0 {`)
+			p.P(`resp.`, fieldName, ` = bom.ToObj(e.`, fieldName, `)`)
+			p.P(`}`)
+		}
 
 	} else {
 		p.P(`resp.`, fieldName, ` = e.`, fieldName)
