@@ -206,8 +206,17 @@ func (p *MongoPlugin) GenerateBomConnection(message *descriptor.DescriptorProto)
 	p.P()
 	p.P(`// Bom connect`)
 	p.P(`func (e *`, gName, `) SetBom(bom *bom.Bom) *`, gName, ` {`)
-	p.P(` e.bom = bom`)
+	p.P(` e.bom = bom.WithColl("`, p.getCollection(message), `") `)
 	p.P(` return e`)
+	p.P(`}`)
+}
+
+func (p *MongoPlugin) GenerateGetBom(message *descriptor.DescriptorProto) {
+	gName := p.GenerateName(message.GetName())
+	p.P()
+	p.P(`// Bom connect`)
+	p.P(`func (e *`, gName, `) GetBom() *bom.Bom {`)
+	p.P(` return e.bom`)
 	p.P(`}`)
 }
 
