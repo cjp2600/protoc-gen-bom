@@ -6,120 +6,411 @@ import "github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis/google/api
 
 package main;
 
-// user types existing in the system
-enum UserTypes {
-    pupil = 0; // the main user type is set by default, type is issued for customers of the service who perform training
-    teacher = 1; // type of teacher
-    admin = 4;
-}
+// Сервис работы с контрактами
+service ContractService {
 
-// service responsible for working with users and authorization tokens
-service UserService {
-
-    // method of creating a user in the system, caused in the case of user registration regardless of the type
-    rpc CreateUser (User) returns (UserResponse) {
+    // вывод версии сервиса
+    rpc Version (Empty) returns (VersionResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users"
+            get: "/api/v1/contracts/version"
+         };
+    }
+
+    // метод создания контрактов
+    rpc CreateContract (Contract) returns (ContractResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/contracts"
             body: "*"
          };
     }
 
-    // token validation method
-    rpc ValidateToken (Token) returns (UserResponse) {
+    // метод создания типа контракта
+    rpc CreateContractType (ContractType) returns (ContractTypeResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users/token/validate"
+            post: "/api/v1/contracts/types"
             body: "*"
+         };
+    }
+
+    // список всех контрктов по определенному провайдеру
+    rpc ProviderContractAllList (ProviderListQueryRequest) returns (ContractListResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/contracts/providers/{providerId}"
+         };
+    }
+
+    // список всех контракотов по определенному мерченту
+    rpc MerchantContractAllList (MerchantListQueryRequest) returns (ContractListResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/contracts/merchants/{merchantId}"
+         };
+    }
+
+    // создание связи провайдер/тип контракта
+    rpc CreateProviderContractType (ProviderContractTypeRequest) returns (EmptyResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/contracts/types/providers"
+            body: "*"
+         };
+    }
+
+    // Создание запроса на контракт
+    rpc ContractRequest (CreateRequestRequest) returns (RequestResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/contracts/requests"
+            body: "*"
+         };
+    }
+
+    // Получение спаска входящих запросов
+    rpc IncomingRequests (IdListQueryRequest) returns (RequestListResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/contracts/requests/to/{id}"
+         };
+    }
+
+    // Получение спаска исходящих запросов
+    rpc OutgoingRequests (IdListQueryRequest) returns (RequestListResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/contracts/requests/from/{id}"
+         };
+    }
+
+    // вывод списка всех типов(контракта) производителя
+    rpc ContractTypeAllList (ProviderListQueryRequest) returns (ContractTypesResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/contracts/{providerId}/types/all"
+         };
+    }
+
+    // вывод списка активных типов(контракта) производителя
+    rpc ContractTypeActiveList (ProviderListQueryRequest) returns (ContractTypesResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/contracts/{providerId}/types/active"
+         };
+    }
+
+    // получение информации о контакте
+    rpc GetOneContract (IdQueryRequest) returns (ContractResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/contracts/{id}"
          };
     }
 }
 
-// user base response model
-message UserResponse {
+//
+// Описание запросов/ответов
+//
+
+// список полей доступных для сортировки
+message SortingFields {
+    enum Sort {
+        _id = 0; // идентификатор
+    }
+}
+
+// список типов сортировки
+enum SortTypes {
+    asc = 0;
+    desc = 1;
+}
+
+enum RequestType {
+    provider = 0;
+    merchant = 1;
+}
+
+// сортировка
+message SortQuery {
+    SortingFields.Sort field = 1;
+    SortTypes type = 2;
+}
+
+// запрос на список с сортировкой c переданным провайдером
+message ProviderListQueryRequest {
+    int32 page = 1;
+    int32 size = 2;
+    string providerId = 4;
+    SortQuery sort = 5;
+}
+
+// запрос на список с сортировкой c переданным мерчентом
+message MerchantListQueryRequest {
+    int32 page = 1;
+    int32 size = 2;
+    string merchantId = 4;
+    SortQuery sort = 5;
+}
+
+// запрос на список с сортировкой
+message ListQueryRequest {
+    int32 page = 1;
+    int32 size = 2;
+    SortQuery sort = 3;
+}
+
+// запрос на еденичное получение с id
+message IdQueryRequest {
+    string id = 4;
+}
+
+// запрос на создание (запроса на контракт)
+message CreateRequestRequest {
+    string contractTypeId = 2 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор типа (object)
+    string from = 3 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор мерчанта
+    string to = 4 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор поставщика
+    repeated string productIds = 5; // идентификатор продуктов
+    bool allProducts = 6; // флаг о участии всех товаров
+    RequestType requestType = 7;
+}
+
+// запрос на список с сортировкой c переданным id
+message IdListQueryRequest {
+    int32 page = 1;
+    int32 size = 2;
+    string id = 4;
+    SortQuery sort = 3;
+}
+
+// пагинация
+message Pagination {
+    int32 totalCount = 1;
+    int32 totalPages = 2;
+    int32 currentPage = 3;
+    int32 size = 4;
+}
+
+// отает спсика контрактов
+message ContractListResponse {
     int32 status = 1;
     string message = 2;
-    User data = 3;
+    repeated Contract data = 3;
+    Pagination pagination = 4;
 }
 
-message Role {
-    option (bom.opts) = {
-         model: true
-         crud: true
-     };
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
-    string name = 2;
-    repeated Permission role = 3;
+message EmptyResponse {
+    int32 status = 1;
+    string message = 2;
 }
 
-message Permission {
-    option (bom.opts) = {
-         model: true
-         crud: true
-     };
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
-
-    string service = 3;
-    bool create = 4;
-    bool read = 5;
-    bool update = 6;
-    bool delete = 7;
+// вывод еденичного контракта
+message ContractResponse {
+    int32 status = 1;
+    string message = 2;
+    Contract data = 3;
 }
 
-// user base model
-message User {
-    option (bom.opts) = {
-         model: true
-         crud: true
-         collection: "user"
-         boundMessage: "ShortUser"
-     };
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
-    bool active = 2;
-
-    string firstName = 3;
-    string lastName = 4;
-    string phone = 6;
-    string email = 7;
-    Role role = 9;
-    bool EmailConfirm = 10;
-    UserTypes type = 11;
-    Token token = 12;
-    google.protobuf.Timestamp createdAt = 13;
-    google.protobuf.Timestamp updatedAt = 14;
-    map<string, string> arguments = 15; // аргументы условия контракта
-    repeated string products = 16 [(bom.field).tag = {mongoObjectId:true}]; // массив учвсвующих в продуктов
+// запрос на установку/удаление связи провайдер/контракт
+message ProviderContractTypeRequest {
+    bool active = 1;
+    string contractTypeId = 2;
+    string providerId = 3;
 }
 
-message ShortUser {
-    option (bom.opts) = {
-         model: true
-         collection: "user"
-     };
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
-    bool active = 2;
-    string firstName = 3;
-    string lastName = 4;
+// вывод еденичного типа контракта
+message ContractTypeResponse {
+    int32 status = 1;
+    string message = 2;
+    ContractType data = 3;
 }
 
-message Token {
-    option (bom.opts) = {
-         model: true
-         crud: true
-     };
-
-    string accessToken = 3;
-    string refreshToken = 4;
+// вывод еденичного запроса
+message RequestResponse {
+    int32 status = 1;
+    string message = 2;
+    Request data = 3;
 }
 
+// вывод пагинированного списка запроса
+message RequestListResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Request data = 3;
+    Pagination pagination = 4;
+}
 
-message ProviderUsers {
+// вывод списка типов котракта
+message ContractTypesResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated ContractType data = 3;
+    Pagination pagination = 4;
+}
+
+// пустой запрос/ответ
+message Empty {
+}
+
+// ответ - верия сервиса
+message VersionResponse {
+    int32 status = 1; // статус ответа
+    string version = 2; // версия
+}
+
+//
+// Описание сущностей
+//
+
+// операторы условый контракта
+enum ConditionsOperators {
+    or = 0; // условие любого выполнения из переданных
+    and = 1; // условие точного совпадения
+}
+
+// Символьные коды условий (прописываются зарание при написании нового условия)
+enum ContractCharacterCode {
+    baseCondition = 0; // базовое условие
+    successfulProductSales = 1; // успешная продажа продукции
+    SaleOfChecks = 2; // основной тип продаж чеков
+    // ...
+}
+
+// статусы запросов
+enum RequestStatus {
+    pending = 0; // в ожидании
+    approve = 1; // одобрен
+    disapprove = 2; // откланен
+}
+
+// статусы контрактов
+enum ContractStatus {
+    waitApprove = 0; // в ожидании
+    open = 1; // окрытый
+    closed = 2; // закрытый
+}
+
+// сущность контрактов
+message Contract {
+    // определяем сообщение как модель
     option (bom.opts) = {
          model: true
-         crud: true
+         crud: true // нужны методы для переопределения
      };
 
-    string providerId = 1 [(bom.field).tag = {mongoObjectId: true}];
-    string userId = 2 [(bom.field).tag = {mongoObjectId: true}];
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
+
+    ContractType contractType = 2; // тип контракта
+
+    string providerId = 3 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор поставщика
+    string merchantId = 4 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор мерчента
+
+    bool isAllProductsInvolved = 5; // флаг участия всех товаров производителя (иначе из списка)
+    ContractStatus status = 6; // статус контракта
+    int32 progressPercent = 7; // прогресс выполнения
+    repeated ProgressEventLog eventLogs = 8; // события выполнения контракта
+    repeated string products = 9 [(bom.field).tag = {mongoObjectId:true}]; // массив учвсвующих в продуктов
+
+    google.protobuf.Timestamp expiredAt = 10; // время жизни контракта
+    google.protobuf.Timestamp createdAt = 11;
+    google.protobuf.Timestamp updatedAt = 12;
+
+    // динамичные поля не импользуешеся в БД
+    string ContractTypeId = 13 [(bom.field).tag = {mongoObjectId:true skip:true}];
+}
+
+// сущность типа контракта
+message ContractType {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "contract_type"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
+    string name = 2; // название
+    string description = 3; // описание типа контракта
+    ConditionOfAchievement conditionsOfAchievement = 4; // правила достижения
+
+    google.protobuf.Timestamp createdAt = 5;
+    google.protobuf.Timestamp updatedAt = 6;
+
+    // динамические поля (необходимые только для передаче gPRC)
+    bool active = 7 [(bom.field).tag = {skip:true}]; // флаг активности в рамках одного производителя (динамическое поле)
+}
+
+// сущность условий
+message ConditionOfAchievement {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+     };
+
+    ConditionsOperators operator = 1; // оператор
+    repeated Condition conditionAliases = 2; // условия
+}
+
+// сущность условия
+message Condition {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+     };
+
+    ContractCharacterCode code = 1; // символьный код условия контракта
+    map<string, string> arguments = 2; // аргументы условия контракта
+}
+
+// сущность доступных для работы типов контактов
+message ProviderContractType {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "providers_contract_type"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор запроса
+    string contractTypeId = 2 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор типа (object)
+    string providerId = 3 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор провайдера
+}
+
+// запрос на участия в контракте
+message Request {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "requests"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор запроса
+    string contractId = 2 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор (object)
+    string from = 3 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор мерчанта
+    string to = 4 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор поставщика
+    string transmittalDescription = 5; // сопроводительное описание
+
+    RequestStatus status = 8; // статус запроса
+    repeated RequestEventLog eventLogs = 9;
+
+    google.protobuf.Timestamp expiredAt = 10; // время жизни запроса
+    google.protobuf.Timestamp createdAt = 11;
+    google.protobuf.Timestamp updatedAt = 12;
+
+    // динамические поля (необходимые только для передаче gPRC)
+    Contract contract = 13 [(bom.field).tag = {skip:true}]; // сущность контракта
+}
+
+// логирование прогресса (логируется достижение прогесса)
+message ProgressEventLog {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+     };
+
+    google.protobuf.Timestamp createdAt = 1; // дата события
+    string message = 2; // описание события
+}
+
+// логирование дейсвий по запросу
+message RequestEventLog {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+     };
+
+    google.protobuf.Timestamp createdAt = 1; // дата события
+    string message = 2; // описание события
 }
