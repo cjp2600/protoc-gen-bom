@@ -437,11 +437,13 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 				p.P(`if len(e.`, fieldName, `) > 0 {`)
 
 				p.P(`for _, b := range `, `e.`, fieldName, `{`)
+				p.P(`if b != nil {`)
 				p.P(`pb, err := b.ToMongo()`)
 				p.P(`if err != nil {`)
 				p.P(`continue`)
 				p.P(`}`)
 				p.P(`sub`, fieldName, ` = append(sub`, fieldName, `, pb)`)
+				p.P(`}`)
 				p.P(`}`)
 
 				p.P(`}`)
@@ -450,8 +452,10 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 				p.P(`resp.`, fieldName, ` = sub`, fieldName)
 			} else {
 				p.P(`// create single mongo`)
+				p.P(`if e.`, fieldName, ` != nil {`)
 				p.P(`pb`, fieldName, `, _ := e.`, fieldName, `.ToMongo()`)
 				p.P(`resp.`, fieldName, ` = pb`, fieldName)
+				p.P(`}`)
 			}
 
 		} else {
