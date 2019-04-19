@@ -60,7 +60,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 			if bomMessage.GetModel() {
 				// генерируем основные методы модели
 				p.generateModelsStructures(msg)
-				p.GenerateBehaviorInterface(msg)
+
 				p.GenerateToPB(msg)
 				p.GenerateToObject(msg)
 				p.GenerateBomConnect(msg)
@@ -291,11 +291,7 @@ func (p *MongoPlugin) GenerateToPB(message *descriptor.DescriptorProto) {
 	p.P(`func (e *`, mName, `) ToPB() (*`, message.GetName(), `, error) {`)
 	p.P(`var resp `, message.GetName())
 	p.P(`var err error`)
-	p.P(`if prehook, ok := interface{}(e).(`, mName, `WithBeforeToPB); ok {`)
-	p.P(`if err = prehook.BeforeToPB(&resp); err != nil {`)
-	p.P(`return &resp, err`)
-	p.P(`}`)
-	p.P(`}`)
+
 	for _, field := range message.GetField() {
 		bomField := p.getFieldOptions(field)
 		if bomField != nil && bomField.Tag.GetSkip() {
@@ -304,9 +300,7 @@ func (p *MongoPlugin) GenerateToPB(message *descriptor.DescriptorProto) {
 		}
 		p.GenerateFieldConversion(field, message, bomField)
 	}
-	p.P(`if posthook, ok := interface{}(e).(`, mName, `WithAfterToPB); ok {`)
-	p.P(`err = posthook.AfterToPB(&resp)`)
-	p.P(`}`)
+
 	p.P(`return &resp, err`)
 	p.P(`}`)
 	p.Out()
@@ -490,11 +484,7 @@ func (p *MongoPlugin) GenerateToObject(message *descriptor.DescriptorProto) {
 	p.P(`// object to Mongo format, runs the AfterToMongo hook, then returns the Mongo object`)
 	p.P(`func (e *`, message.GetName(), `) ToMongo() (*`, mName, `, error) {`)
 	p.P(`var resp `, mName)
-	p.P(`if prehook, ok := interface{}(e).(`, mName, `WithBeforeToMongo); ok {`)
-	p.P(`if err := prehook.BeforeToMongo(&resp); err != nil {`)
-	p.P(`return &resp, err`)
-	p.P(`}`)
-	p.P(`}`)
+
 	for _, field := range message.GetField() {
 		bomField := p.getFieldOptions(field)
 		if bomField != nil && bomField.Tag.GetSkip() {
@@ -503,11 +493,7 @@ func (p *MongoPlugin) GenerateToObject(message *descriptor.DescriptorProto) {
 		}
 		p.ToMongoGenerateFieldConversion(field, message, bomField)
 	}
-	p.P(`if posthook, ok := interface{}(e).(`, mName, `WithAfterToMongo); ok {`)
-	p.P(`if err := posthook.AfterToMongo(&resp); err != nil {`)
-	p.P(`return &resp, err`)
-	p.P(`}`)
-	p.P(`}`)
+
 	p.P(`return &resp, nil`)
 	p.P(`}`)
 	p.Out()
