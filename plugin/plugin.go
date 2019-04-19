@@ -75,6 +75,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 				if bomMessage.GetCrud() {
 					p.useCrud = true
 					p.GenerateBomConnection(msg)
+					p.GenerateGetBom(msg)
 					p.GenerateContructor(msg)
 					p.GenerateInsertMethod(msg)
 					p.GenerateFindOneMethod(msg)
@@ -436,9 +437,8 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 func (p *MongoPlugin) GenerateToPB(message *descriptor.DescriptorProto) {
 	p.In()
 	mName := p.GenerateName(message.GetName())
-	p.P(`func (e *`, mName, `) ToPB() (*`, message.GetName(), `, error) {`)
+	p.P(`func (e *`, mName, `) ToPB() *`, message.GetName(), ` {`)
 	p.P(`var resp `, message.GetName())
-	p.P(`var err error`)
 
 	for _, field := range message.GetField() {
 		bomField := p.getFieldOptions(field)
@@ -449,7 +449,7 @@ func (p *MongoPlugin) GenerateToPB(message *descriptor.DescriptorProto) {
 		p.GenerateFieldConversion(field, message, bomField)
 	}
 
-	p.P(`return &resp, err`)
+	p.P(`return &resp`)
 	p.P(`}`)
 	p.Out()
 	p.P(``)
@@ -495,11 +495,7 @@ func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorP
 				p.P(`if len(e.`, fieldName, `) > 0 {`)
 
 				p.P(`for _, b := range `, `e.`, fieldName, `{`)
-				p.P(`pb, err := b.ToPB()`)
-				p.P(`if err != nil {`)
-				p.P(`continue`)
-				p.P(`}`)
-				p.P(`sub`, fieldName, ` = append(sub`, fieldName, `, pb)`)
+				p.P(`sub`, fieldName, ` = append(sub`, fieldName, `, b.ToPB())`)
 				p.P(`}`)
 
 				p.P(`}`)
@@ -510,8 +506,7 @@ func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorP
 
 				p.P(`// create single pb`)
 				p.P(`if e.`, fieldName, ` != nil {`)
-				p.P(`pb`, fieldName, `, _ := e.`, fieldName, `.ToPB()`)
-				p.P(`resp.`, fieldName, ` = pb`, fieldName)
+				p.P(`resp.`, fieldName, ` = e.`, fieldName, `.ToPB()`)
 				p.P(`}`)
 
 			}
@@ -580,7 +575,6 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 			p.P(`ut`, fieldName, ` := time.Unix(e.`, fieldName, `.GetSeconds(), int64(e.`, fieldName, `.GetNanos()))`)
 			p.P(`resp.`, fieldName, ` = ut`, fieldName)
 		} else if field.IsMessage() {
-
 			repeated := field.IsRepeated()
 			if repeated {
 				p.P(`// create nested mongo`)
@@ -590,11 +584,7 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 
 				p.P(`for _, b := range `, `e.`, fieldName, `{`)
 				p.P(`if b != nil {`)
-				p.P(`pb, err := b.ToMongo()`)
-				p.P(`if err != nil {`)
-				p.P(`continue`)
-				p.P(`}`)
-				p.P(`sub`, fieldName, ` = append(sub`, fieldName, `, pb)`)
+				p.P(`sub`, fieldName, ` = append(sub`, fieldName, `, b.ToMongo())`)
 				p.P(`}`)
 				p.P(`}`)
 
@@ -605,8 +595,7 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 			} else {
 				p.P(`// create single mongo`)
 				p.P(`if e.`, fieldName, ` != nil {`)
-				p.P(`pb`, fieldName, `, _ := e.`, fieldName, `.ToMongo()`)
-				p.P(`resp.`, fieldName, ` = pb`, fieldName)
+				p.P(`resp.`, fieldName, ` = e.`, fieldName, `.ToMongo()`)
 				p.P(`}`)
 			}
 
@@ -638,7 +627,7 @@ func (p *MongoPlugin) GenerateToObject(message *descriptor.DescriptorProto) {
 	mName := p.GenerateName(message.GetName())
 	p.P(`// ToMongo runs the BeforeToMongo hook if present, converts the fields of this`)
 	p.P(`// object to Mongo format, runs the AfterToMongo hook, then returns the Mongo object`)
-	p.P(`func (e *`, message.GetName(), `) ToMongo() (*`, mName, `, error) {`)
+	p.P(`func (e *`, message.GetName(), `) ToMongo() *`, mName, ` {`)
 	p.P(`var resp `, mName)
 
 	for _, field := range message.GetField() {
@@ -650,7 +639,7 @@ func (p *MongoPlugin) GenerateToObject(message *descriptor.DescriptorProto) {
 		p.ToMongoGenerateFieldConversion(field, message, bomField)
 	}
 
-	p.P(`return &resp, nil`)
+	p.P(`return &resp`)
 	p.P(`}`)
 	p.Out()
 	p.P(``)
