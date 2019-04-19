@@ -67,7 +67,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 
 				p.GenerateToPB(msg)
 				p.GenerateToObject(msg)
-				//p.GenerateBomConnect(msg)
+				p.GenerateBomConnection(msg)
 				p.GenerateObjectId(msg)
 				// todo: доделать генерацию конвертации в связанную модель
 				//p.GenerateBoundMessage(msg)
@@ -162,6 +162,16 @@ func (p *MongoPlugin) GenerateObjectId(message *descriptor.DescriptorProto) {
 }
 
 //p.GenerateContructor(msg)
+func (p *MongoPlugin) getCollection(message *descriptor.DescriptorProto) string {
+	collection := strings.ToLower(message.GetName())
+	bomMessage, ok := p.getMessageOptions(message)
+	if ok {
+		if clt := bomMessage.GetCollection(); len(clt) > 0 {
+			collection = clt
+		}
+	}
+	return collection
+}
 
 func (p *MongoPlugin) GenerateContructor(message *descriptor.DescriptorProto) {
 	gName := p.GenerateName(message.GetName())
@@ -187,6 +197,16 @@ func (p *MongoPlugin) GenerateWhereMethod(message *descriptor.DescriptorProto) {
 	p.P(`// Where method`)
 	p.P(`func (e *`, gName, `) Where(field string, value interface{}) *`, gName, ` {`)
 	p.P(` e.bom.Where(field, value)`)
+	p.P(` return e`)
+	p.P(`}`)
+}
+
+func (p *MongoPlugin) GenerateBomConnection(message *descriptor.DescriptorProto) {
+	gName := p.GenerateName(message.GetName())
+	p.P()
+	p.P(`// Bom connect`)
+	p.P(`func (e *`, gName, `) SetBom(bom *Bom) *`, gName, ` {`)
+	p.P(` e.bom = bom`)
 	p.P(` return e`)
 	p.P(`}`)
 }
