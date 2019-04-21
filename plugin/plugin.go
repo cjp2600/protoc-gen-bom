@@ -6,6 +6,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
+	"path"
 	"strings"
 )
 
@@ -25,6 +26,8 @@ type MongoPlugin struct {
 	localName    string
 }
 
+var ServiceName string
+
 func NewMongoPlugin(generator *generator.Generator) *MongoPlugin {
 	return &MongoPlugin{Generator: generator}
 }
@@ -33,6 +36,7 @@ func (p *MongoPlugin) GenerateImports(file *generator.FileDescriptor) {
 	if p.usePrimitive {
 		p.Generator.PrintImport("primitive", "go.mongodb.org/mongo-driver/bson/primitive")
 	}
+	p.Generator.PrintImport("os", "os")
 	p.Generator.PrintImport("bom", "github.com/cjp2600/bom")
 	//p.Generator.PrintImport("context", "context")
 	if p.useTime {
@@ -60,7 +64,10 @@ func (p *MongoPlugin) GenerateName(name string) string {
 func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 	p.PluginImports = generator.NewPluginImports(p.Generator)
 	p.localName = generator.FileName(file)
+	ServiceName = p.GetServiceName(file)
+
 	p.usePrimitive = false
+	p.GenerateBomObject()
 	for _, msg := range file.GetMessageType() {
 		if bomMessage, ok := p.getMessageOptions(msg); ok {
 			if bomMessage.GetModel() {
@@ -174,6 +181,20 @@ func (p *MongoPlugin) getCollection(message *descriptor.DescriptorProto) string 
 	return collection
 }
 
+func (p *MongoPlugin) GetServiceName(file *generator.FileDescriptor) string {
+	var name string
+	for _, svc := range file.Service {
+		if svc != nil && svc.Name != nil {
+			return *svc.Name
+		}
+	}
+	name = *file.Name
+	if ext := path.Ext(name); ext == ".proto" || ext == ".protodevel" {
+		name = name[:len(name)-len(ext)]
+	}
+	return name
+}
+
 func (p *MongoPlugin) GenerateContructor(message *descriptor.DescriptorProto) {
 	gName := p.GenerateName(message.GetName())
 	bomMessage, ok := p.getMessageOptions(message)
@@ -185,8 +206,11 @@ func (p *MongoPlugin) GenerateContructor(message *descriptor.DescriptorProto) {
 		p.P(`//`)
 		p.P(`// create `, gName, ` mongo model of protobuf `, message.GetName())
 		p.P(`//`)
-		p.P(`func New`, gName, `(b *bom.Bom) *`, gName, ` {`)
-		p.P(`return &`, gName, `{bom:  b.WithColl("`, collection, `")}`)
+		p.P(`func New`, gName, `() *`, gName, ` {`)
+		p.P(`if GlobalBom == nil {`)
+		p.P(`panic("bom object not found")`)
+		p.P(`}`)
+		p.P(`return &`, gName, `{bom:  GlobalBom.WithColl("`, collection, `")}`)
 		p.P(`}`)
 	}
 }
@@ -200,12 +224,115 @@ func (p *MongoPlugin) GenerateWhereMethod(message *descriptor.DescriptorProto) {
 	p.P(` e.bom.Where(field, value)`)
 	p.P(` return e`)
 	p.P(`}`)
+
+	////	bmQuery := mongoModel.GetBom().
+	////		WithLimit(&bom.Limit{Page: q.Page, Size: q.Size})
+
+	p.P()
+	p.P(`// Limit method`)
+	p.P(`func (e *`, gName, `) Limit(page int32, size int32) *`, gName, ` {`)
+	p.P(` e.bom.WithLimit(&bom.Limit{Page: page, Size: size})`)
+	p.P(` return e`)
+	p.P(`}`)
+
+	p.P()
+	p.P(`// Sort method`)
+	p.P(`func (e *`, gName, `) Sort(sortField string, sortType string) *`, gName, ` {`)
+	p.P(`if sortField == "id" {`)
+	p.P(`sortField = "_id"`)
+	p.P(`}`)
+	p.P(` e.bom.WithSort(&bom.Sort{Field: sortField, Type: sortType})`)
+	p.P(` return e`)
+	p.P(`}`)
+
+	p.P()
+	p.P(`// Find with pagination`)
+	p.P(`func (e *`, gName, `) ListWithPagination() ([]*`, gName, `, *bom.Pagination, error) {`)
+	p.P(`var items []*`, gName)
+	p.P(`paginator, err := e.bom.ListWithPagination(func(cur *mongo.Cursor) error {`)
+	p.P(`var result `, gName, ``)
+	p.P(`err := cur.Decode(&result)`)
+	p.P(`if err != nil {`)
+	p.P(`return err`)
+	p.P(`}`)
+	p.P(`items = append(items, result)`)
+	p.P(`return nil`)
+	p.P(`})`)
+	p.P(`return items, paginator, err`)
+	p.P(`}`)
+
+	p.P()
+	p.P(`// Find list`)
+	p.P(`func (e *`, gName, `) List() ([]*`, gName, `, error) {`)
+	p.P(`var items []*`, gName)
+
+	p.P(`err := e.bom.List(func(cur *mongo.Cursor) error {`)
+	p.P(`var result `, gName, ``)
+	p.P(`err := cur.Decode(&result)`)
+	p.P(`if err != nil {`)
+	p.P(`return err`)
+	p.P(`}`)
+	p.P(`items = append(items, result)`)
+	p.P(`return nil`)
+	p.P(`})`)
+
+	p.P(`return items, err`)
+	p.P(`}`)
+
+	p.P()
+	p.P(`// Get bulk map`)
+	p.P(`func (e *`, gName, `) GetBulkMap(ids []string) (map[string]*`, gName, `, error) {`)
+	p.P(`result = make(map[string]*`, gName, `)`)
+	p.P(`items, err := e.WhereIn("_id", bom.ToObjects(ids)).List()`)
+	p.P(`if err != nil {`)
+	p.P(`return result, err`)
+	p.P(`}`)
+
+	p.P(`for k, v := range items {`)
+	p.P(`result[k] = v`)
+	p.P(`}`)
+
+	p.P(`return result, nil`)
+	p.P(`}`)
+
+	p.P()
+	p.P(`// Get bulk map`)
+	p.P(`func (e *`, gName, `) GetBulk(ids []string) ([]*`, gName, `, error) {`)
+	p.P(`return e.WhereIn("_id", bom.ToObjects(ids)).List()`)
+	p.P(`}`)
+
+}
+
+func (p *MongoPlugin) GenerateBomObject() {
+	p.useMongoDr = true
+	p.P()
+	p.P(`// global bom Object`)
+	p.P(`var GlobalBom *bom.Bom`)
+	p.P()
+	p.P(`// create Bom wrapper (`, ServiceName, `)`)
+	p.P(`func `, ServiceName, `BomWrapper(client *mongo.Client) error {`)
+	p.P(`dbName := os.Getenv("MONGO_DB_NAME")`)
+	p.P(`if len(dbName) == 0 {`)
+	p.P(`dbName = "`, strings.ToLower(ServiceName), `"`)
+	p.P(`}`)
+	p.P(`bomObject, err := bom.New(`)
+	p.P(`bom.SetMongoClient(client),`)
+	p.P(`bom.SetDatabaseName(dbName),`)
+	p.P(`)`)
+	p.P(`if err != nil {`)
+	p.P(`return err`)
+	p.P(`}`)
+	p.P(`// set global var`)
+	p.P(`GlobalBom = bomObject`)
+	p.P(`return nil`)
+	p.P(`}`)
+	p.P()
 }
 
 func (p *MongoPlugin) GenerateBomConnection(message *descriptor.DescriptorProto) {
 	gName := p.GenerateName(message.GetName())
 	p.P()
-	p.P(`// Bom connect`)
+	p.P(`// set custom bom wrapper`)
 	p.P(`func (e *`, gName, `) SetBom(bom *bom.Bom) *`, gName, ` {`)
 	p.P(` e.bom = bom.WithColl("`, p.getCollection(message), `") `)
 	p.P(` return e`)
@@ -215,7 +342,7 @@ func (p *MongoPlugin) GenerateBomConnection(message *descriptor.DescriptorProto)
 func (p *MongoPlugin) GenerateGetBom(message *descriptor.DescriptorProto) {
 	gName := p.GenerateName(message.GetName())
 	p.P()
-	p.P(`// Bom connect`)
+	p.P(`// GetSourceBom - Get the source object`)
 	p.P(`func (e *`, gName, `) GetBom() *bom.Bom {`)
 	p.P(` return e.bom`)
 	p.P(`}`)
@@ -637,6 +764,21 @@ func (p *MongoPlugin) GenerateToObject(message *descriptor.DescriptorProto) {
 			continue
 		}
 		p.ToMongoGenerateFieldConversion(field, message, bomField)
+	}
+
+	bomMessage, ok := p.getMessageOptions(message)
+	if ok {
+		collection := strings.ToLower(message.GetName())
+		if clt := bomMessage.GetCollection(); len(clt) > 0 {
+			collection = clt
+		}
+		p.P()
+		p.P(`// bom connection`)
+		p.P(`if GlobalBom == nil {`)
+		p.P(`panic("bom object not found")`)
+		p.P(`}`)
+		p.P(`resp.bom = GlobalBom.WithColl("`, collection, `")`)
+		p.P()
 	}
 
 	p.P(`return &resp`)
