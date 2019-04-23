@@ -36,8 +36,14 @@ func (p *MongoPlugin) GenerateImports(file *generator.FileDescriptor) {
 	if p.usePrimitive {
 		p.Generator.PrintImport("primitive", "go.mongodb.org/mongo-driver/bson/primitive")
 	}
+	p.Generator.PrintImport("context", "context")
 	p.Generator.PrintImport("os", "os")
+	p.Generator.PrintImport("time", "time")
+	p.Generator.PrintImport("mongo", "go.mongodb.org/mongo-driver/mongo")
+	p.Generator.PrintImport("options", "go.mongodb.org/mongo-driver/mongo/options")
+	p.Generator.PrintImport("readpref", "go.mongodb.org/mongo-driver/mongo/readpref")
 	p.Generator.PrintImport("bom", "github.com/cjp2600/bom")
+
 	//p.Generator.PrintImport("context", "context")
 	if p.useTime {
 		p.Generator.PrintImport("time", "time")
@@ -45,10 +51,6 @@ func (p *MongoPlugin) GenerateImports(file *generator.FileDescriptor) {
 	}
 	if p.useStrconv {
 		p.Generator.PrintImport("strconv", "strconv")
-	}
-	if p.useMongoDr {
-		//"go.mongodb.org/mongo-driver/mongo"
-		p.Generator.PrintImport("mongo", "go.mongodb.org/mongo-driver/mongo")
 	}
 }
 
@@ -209,10 +211,7 @@ func (p *MongoPlugin) GenerateContructor(message *descriptor.DescriptorProto) {
 		p.P(`// create `, gName, ` mongo model of protobuf `, message.GetName())
 		p.P(`//`)
 		p.P(`func New`, gName, `() *`, gName, ` {`)
-		p.P(`if GlobalBom == nil {`)
-		p.P(`panic("bom object not found")`)
-		p.P(`}`)
-		p.P(`return &`, gName, `{bom:  GlobalBom.WithColl("`, collection, `")}`)
+		p.P(`return &`, gName, `{bom:  `, ServiceName, `BomWrapper().WithColl("`, collection, `")}`)
 		p.P(`}`)
 	}
 }
@@ -314,31 +313,66 @@ func (p *MongoPlugin) GenerateWhereMethod(message *descriptor.DescriptorProto) {
 			p.P(`}`)
 		}
 	}
+}
+
+func (p *MongoPlugin) GenerateMongoConnection() {
+	p.P(`// MongoClient - create mongo connection`)
+	p.P(`var MongoClient *mongo.Client`)
+	p.P()
+	p.P(`// MongoConnection - connection`)
+	p.P(`func MongoConnection() (*mongo.Client, error) {`)
+
+	p.P(`ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)`)
+
+	p.P(`dbUrl := os.Getenv("MONGO_URL")`)
+	p.P(`if len(dbUrl) == 0 {`)
+	p.P(`return nil, fmt.Errorf("MONGO_URL env is empty")`)
+	p.P(`}`)
+
+	p.P(`client, err := mongo.Connect(ctx, options.Client().ApplyURI(dbUrl))`)
+
+	p.P(`if err != nil {`)
+	p.P(`return client, err`)
+	p.P(`}`)
+
+	p.P(`ctx, _ = context.WithTimeout(context.Background(), 2*time.Second)`)
+	p.P(`err = client.Ping(ctx, readpref.Primary())`)
+
+	p.P(`if err != nil {`)
+	p.P(`return client, err`)
+	p.P(`}`)
+
+	p.P(`MongoClient = client`)
+
+	p.P(`dbName := os.Getenv("MONGO_DB_NAME")`)
+	p.P(`if len(dbName) == 0 {`)
+	p.P(`dbName = "`, strings.ToLower(ServiceName), `"`)
+	p.P(`}`)
+	p.P(`client.Database(dbName)`)
+
+	p.P(`return client, nil`)
+	p.P(`}`)
+	p.P()
 
 }
 
 func (p *MongoPlugin) GenerateBomObject() {
 	p.useMongoDr = true
 	p.P()
-	p.P(`// global bom Object`)
-	p.P(`var GlobalBom *bom.Bom`)
-	p.P()
+	p.GenerateMongoConnection()
+
 	p.P(`// create Bom wrapper (`, ServiceName, `)`)
-	p.P(`func `, ServiceName, `BomWrapper(client *mongo.Client) error {`)
+	p.P(`func `, ServiceName, `BomWrapper() *bom.Bom {`)
 	p.P(`dbName := os.Getenv("MONGO_DB_NAME")`)
 	p.P(`if len(dbName) == 0 {`)
 	p.P(`dbName = "`, strings.ToLower(ServiceName), `"`)
 	p.P(`}`)
-	p.P(`bomObject, err := bom.New(`)
-	p.P(`bom.SetMongoClient(client),`)
+	p.P(`bomObject, _ := bom.New(`)
+	p.P(`bom.SetMongoClient(MongoClient),`)
 	p.P(`bom.SetDatabaseName(dbName),`)
 	p.P(`)`)
-	p.P(`if err != nil {`)
-	p.P(`return err`)
-	p.P(`}`)
 	p.P(`// set global var`)
-	p.P(`GlobalBom = bomObject`)
-	p.P(`return nil`)
+	p.P(`return bomObject`)
 	p.P(`}`)
 	p.P()
 }
@@ -878,10 +912,7 @@ func (p *MongoPlugin) GenerateToObject(message *descriptor.DescriptorProto) {
 		}
 		p.P()
 		p.P(`// bom connection`)
-		p.P(`if GlobalBom == nil {`)
-		p.P(`panic("bom object not found")`)
-		p.P(`}`)
-		p.P(`resp.bom = GlobalBom.WithColl("`, collection, `")`)
+		p.P(`resp.bom = `, ServiceName, `BomWrapper().WithColl("`, collection, `")`)
 		p.P()
 	}
 
