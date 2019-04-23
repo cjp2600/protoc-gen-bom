@@ -529,7 +529,7 @@ func (p *MongoPlugin) GerateWhereId(message *descriptor.DescriptorProto) {
 
 				p.P()
 				p.P(`func (e *`, mName, `) Where`, fieldName, `s (ids []string) *`, mName, ` {`)
-				p.P(`e.bom.WhereIn("`, f, `", bom.ToObjects(ids))`)
+				p.P(`e.bom.InWhere("`, f, `", bom.ToObjects(ids))`)
 				p.P(`return e`)
 				p.P(`}`)
 				p.P()
