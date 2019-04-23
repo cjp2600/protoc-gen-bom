@@ -87,6 +87,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateInsertMethod(msg)
 					p.GenerateFindOneMethod(msg)
 					p.GenerateUpdateOneMethod(msg)
+					p.GerateWhereId(msg)
 					p.GenerateFindMethod(msg)
 					p.GenerateWhereMethod(msg)
 					p.GenerateWhereInMethod(msg)
@@ -503,6 +504,31 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *descriptor.DescriptorProt
 		p.P(` }`)
 		p.P()
 
+	}
+}
+
+//GerateWhereId
+func (p *MongoPlugin) GerateWhereId(message *descriptor.DescriptorProto) {
+	mName := p.GenerateName(message.GetName())
+	for _, field := range message.GetField() {
+		fieldName := field.GetName()
+		fieldName = generator.CamelCase(fieldName)
+		bomField := p.getFieldOptions(field)
+		if bomField != nil && bomField.Tag.GetMongoObjectId() {
+
+			if bomField.GetTag().GetIsID() {
+				p.usePrimitive = true
+				f := strings.ToLower(fieldName)
+				if f == "id" {
+					f = "_id"
+				}
+				p.P(`func (e *`, mName, `) Where`, fieldName, `(id string) *`, mName, ` {`)
+				p.P(`e.bom.Where("`, f, `", bom.ToObj(id))`)
+				p.P(`return e`)
+				p.P(`}`)
+			}
+
+		}
 	}
 }
 
