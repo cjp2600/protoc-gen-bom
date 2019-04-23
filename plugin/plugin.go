@@ -86,6 +86,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateContructor(msg)
 					p.GenerateInsertMethod(msg)
 					p.GenerateFindOneMethod(msg)
+					p.GenerateUpdateOneMethod(msg)
 					p.GenerateFindMethod(msg)
 					p.GenerateWhereMethod(msg)
 					p.GenerateWhereInMethod(msg)
@@ -255,7 +256,7 @@ func (p *MongoPlugin) GenerateWhereMethod(message *descriptor.DescriptorProto) {
 	p.P(`if err != nil {`)
 	p.P(`return err`)
 	p.P(`}`)
-	p.P(`items = append(items, result)`)
+	p.P(`items = append(items, &result)`)
 	p.P(`return nil`)
 	p.P(`})`)
 	p.P(`return items, paginator, err`)
@@ -272,34 +273,46 @@ func (p *MongoPlugin) GenerateWhereMethod(message *descriptor.DescriptorProto) {
 	p.P(`if err != nil {`)
 	p.P(`return err`)
 	p.P(`}`)
-	p.P(`items = append(items, result)`)
+	p.P(`items = append(items, &result)`)
 	p.P(`return nil`)
 	p.P(`})`)
 
 	p.P(`return items, err`)
 	p.P(`}`)
 
-	p.P()
-	p.P(`// Get bulk map`)
-	p.P(`func (e *`, gName, `) GetBulkMap(ids []string) (map[string]*`, gName, `, error) {`)
-	p.P(`result = make(map[string]*`, gName, `)`)
-	p.P(`items, err := e.WhereIn("_id", bom.ToObjects(ids)).List()`)
-	p.P(`if err != nil {`)
-	p.P(`return result, err`)
-	p.P(`}`)
+	for _, field := range message.GetField() {
+		bomField := p.getFieldOptions(field)
+		fieldName := field.GetName()
+		if bomField != nil && bomField.Tag.GetIsID() {
 
-	p.P(`for k, v := range items {`)
-	p.P(`result[k] = v`)
-	p.P(`}`)
+			fn := strings.ToLower(fieldName)
+			if fn == "id" {
+				fn = "_id"
+			}
 
-	p.P(`return result, nil`)
-	p.P(`}`)
+			p.P()
+			p.P(`// Get bulk map`)
+			p.P(`func (e *`, gName, `) GetBulkMap(ids []string) (map[string]*`, gName, `, error) {`)
+			p.P(`result := make(map[string]*`, gName, `)`)
+			p.P(`items, err := e.WhereIn("`, fn, `", bom.ToObjects(ids)).List()`)
+			p.P(`if err != nil {`)
+			p.P(`return result, err`)
+			p.P(`}`)
 
-	p.P()
-	p.P(`// Get bulk map`)
-	p.P(`func (e *`, gName, `) GetBulk(ids []string) ([]*`, gName, `, error) {`)
-	p.P(`return e.WhereIn("_id", bom.ToObjects(ids)).List()`)
-	p.P(`}`)
+			p.P(`for _, v := range items {`)
+			p.P(`result[v.`, generator.CamelCase(fieldName), `.Hex()] = v`)
+			p.P(`}`)
+
+			p.P(`return result, nil`)
+			p.P(`}`)
+
+			p.P()
+			p.P(`// Get bulk map`)
+			p.P(`func (e *`, gName, `) GetBulk(ids []string) ([]*`, gName, `, error) {`)
+			p.P(`return e.WhereIn("`, fn, `", bom.ToObjects(ids)).List()`)
+			p.P(`}`)
+		}
+	}
 
 }
 
@@ -431,6 +444,64 @@ func (p *MongoPlugin) GenerateFindOneMethod(message *descriptor.DescriptorProto)
 			p.P(`}`)
 			p.P()
 		}
+
+	}
+}
+
+//GenerateUpdateOneMethod
+func (p *MongoPlugin) GenerateUpdateOneMethod(message *descriptor.DescriptorProto) {
+
+	for _, field := range message.GetField() {
+		des := &generator.Descriptor{
+			DescriptorProto: message,
+		}
+		fieldName := field.GetName()
+		if strings.ToLower(fieldName) == "id" {
+			continue
+		}
+
+		goTyp, _ := p.GoType(des, field)
+		fieldName = generator.CamelCase(fieldName)
+		mName := p.GenerateName(message.GetName())
+
+		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
+			goTyp = "time.Time"
+			p.useTime = true
+		} else if p.IsMap(field) {
+			m := p.GoMapType(nil, field)
+			goTyp = m.GoType
+		} else {
+			if field.IsMessage() {
+				goTyp = p.GenerateName(goTyp)
+			}
+		}
+
+		p.useMongoDr = true
+		p.P(`// Update`, fieldName, ` - update field`)
+		p.P(`func (e *`, mName, `) Update`, fieldName, `(`, fieldName, ` `, goTyp, `, updateAt bool) (*`, mName, `, error) {`)
+
+		p.P(`// mongoModel := `, mName, `{}`)
+		p.P(` if !updateAt {`)
+		p.P(` _, err := e.bom.UpdateRaw(primitive.D{`)
+		p.P(` {Key: "$set", Value: primitive.D{{"`, strings.ToLower(fieldName), `", `, fieldName, `}}},`)
+		p.P(` })`)
+		p.P(` if err != nil {`)
+		p.P(` return e, err`)
+		p.P(` }`)
+
+		p.P(` } else {`)
+		p.P(` _, err := e.bom.UpdateRaw(primitive.D{`)
+		p.P(` {Key: "$set", Value: primitive.D{{"`, strings.ToLower(fieldName), `", `, fieldName, `}}},`)
+		p.P(` {Key: "$currentDate", Value: primitive.D{{"updatedat", true}}},`)
+		p.P(` })`)
+		p.P(` if err != nil {`)
+		p.P(` return e, err`)
+		p.P(` }`)
+		p.P(` }`)
+
+		p.P(` return e, nil`)
+		p.P(` }`)
+		p.P()
 
 	}
 }
