@@ -647,8 +647,8 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *descriptor.DescriptorProt
 			DescriptorProto: message,
 		}
 		fieldName := field.GetName()
-		// skip _id field
-		if strings.ToLower(fieldName) == "id" || strings.ToLower(fieldName) == "createdat" {
+		// skip _id field UpdatedAt
+		if strings.ToLower(fieldName) == "id" || strings.ToLower(fieldName) == "createdat" || strings.ToLower(fieldName) == "updatedat" {
 			continue
 		}
 		bomField := p.getFieldOptions(field)
@@ -656,6 +656,8 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *descriptor.DescriptorProt
 			// skip field
 			continue
 		}
+
+		//e.ManufactureId.Hex() != "000000000000000000000000"
 
 		// find goType
 		goTyp, _ := p.GoType(des, field)
@@ -672,6 +674,21 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *descriptor.DescriptorProt
 			} else {
 				p.P(`// set `, fieldName)
 				p.P(`if e.`, fieldName, ` > 0 {`)
+				p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
+				p.P(`}`)
+			}
+
+		} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
+
+			if !field.IsRepeated() {
+				p.P(`// set `, fieldName)
+				p.P(`if e.`, fieldName, `.Hex() != "000000000000000000000000" {`)
+				p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
+				p.P(`}`)
+			} else {
+
+				p.P(`// set `, fieldName)
+				p.P(`if len(e.`, fieldName, `) > 0 {`)
 				p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
 				p.P(`}`)
 			}
