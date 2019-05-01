@@ -89,6 +89,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateInsertMethod(msg)
 					p.GenerateFindOneMethod(msg)
 					p.GenerateUpdateOneMethod(msg)
+					p.GenerateUpdateAllMethod(msg)
 					p.GerateWhereId(msg)
 					p.GenerateFindMethod(msg)
 					p.GenerateWhereMethod(msg)
@@ -630,6 +631,120 @@ func (p *MongoPlugin) GenerateBehaviorInterface(message *descriptor.DescriptorPr
 		p.P(`}`)
 		p.P()
 	}
+}
+
+//GenerateUpdateAllMethod
+func (p *MongoPlugin) GenerateUpdateAllMethod(message *descriptor.DescriptorProto) {
+	gName := p.GenerateName(message.GetName())
+	p.P()
+	p.P(`//Update - update model method, a check is made on existing fields.`)
+	p.P(`func (e *`, gName, `) Update (updateAt bool) (*`, gName, `, error) {`)
+	p.P(`var flatFields []primitive.E`)
+	p.P(`var upResult primitive.D`)
+
+	for _, field := range message.GetField() {
+		des := &generator.Descriptor{
+			DescriptorProto: message,
+		}
+		fieldName := field.GetName()
+		// skip _id field
+		if strings.ToLower(fieldName) == "id" || strings.ToLower(fieldName) == "createdat" {
+			continue
+		}
+		bomField := p.getFieldOptions(field)
+		if bomField != nil && bomField.Tag.GetSkip() {
+			// skip field
+			continue
+		}
+
+		// find goType
+		goTyp, _ := p.GoType(des, field)
+		fieldName = generator.CamelCase(fieldName)
+		mapName := strings.ToLower(fieldName)
+
+		if field.IsScalar() {
+
+			if strings.ToLower(goTyp) == "bool" {
+				p.P(`// set `, fieldName)
+				p.P(`if e.`, fieldName, ` {`)
+				p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
+				p.P(`}`)
+			} else {
+				p.P(`// set `, fieldName)
+				p.P(`if e.`, fieldName, ` > 0 {`)
+				p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
+				p.P(`}`)
+			}
+
+		} else if strings.ToLower(goTyp) == "*timestamp.timestamp" {
+			goTyp = "time.Time"
+			p.useTime = true
+
+			p.P(`// set `, fieldName)
+			p.P(`if !e.`, fieldName, `.IsZero() {`)
+			p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
+			p.P(`}`)
+
+		} else if p.IsMap(field) {
+			m := p.GoMapType(nil, field)
+			goTyp = m.GoType
+
+			p.P(`// set `, fieldName)
+			p.P(`if len(e.`, fieldName, `) > 0 {`)
+			p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
+			p.P(`}`)
+
+		} else {
+
+			if field.IsMessage() {
+				goTyp = p.GenerateName(goTyp)
+
+				p.P(`// set `, fieldName)
+				p.P(`if e.`, fieldName, ` != nil {`)
+				p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
+				p.P(`}`)
+
+			} else {
+
+				if field.IsEnum() {
+					p.P(`// set `, fieldName)
+					p.P(`if len(e.`, fieldName, `.String()) > 0 {`)
+					p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
+					p.P(`}`)
+				} else {
+					p.P(`// set `, fieldName)
+					p.P(`if len(e.`, fieldName, `) > 0 {`)
+					p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
+					p.P(`}`)
+				}
+			}
+
+		}
+
+	}
+	p.P(` if updateAt {`)
+
+	p.P(`upResult = primitive.D{`)
+	p.P(`{"$set", flatFields},`)
+	p.P(`{"$currentDate", primitive.D{{"updatedat", true}}},`)
+	p.P(`}`)
+
+	p.P(` } else {`)
+
+	p.P(`upResult = primitive.D{`)
+	p.P(`{"$set", flatFields},`)
+	p.P(`}`)
+
+	p.P(` }`)
+
+	p.P(`_, err := e.bom.UpdateRaw(upResult)`)
+	p.P(` if err != nil {`)
+	p.P(` return e, err`)
+	p.P(` }`)
+
+	p.P(` return e, nil`)
+	p.P(`}`)
+	p.P()
 }
 
 func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorProto) {
