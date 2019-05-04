@@ -24,6 +24,7 @@ type MongoPlugin struct {
 	useStrconv   bool
 	useMongoDr   bool
 	useCrud      bool
+	useUnsafe    bool
 	localName    string
 }
 
@@ -52,6 +53,10 @@ func (p *MongoPlugin) GenerateImports(file *generator.FileDescriptor) {
 	}
 	if p.useStrconv {
 		p.Generator.PrintImport("strconv", "strconv")
+	}
+
+	if p.useUnsafe {
+		p.Generator.PrintImport("unsafe", "unsafe")
 	}
 }
 
@@ -490,6 +495,7 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
 		if strings.ToLower(fieldName) == "id" {
 			continue
 		}
+		oneof := field.OneofIndex != nil
 
 		goTyp, _ := p.GoType(message, field)
 		fieldName = generator.CamelCase(fieldName)
@@ -505,6 +511,20 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
 			if field.IsMessage() {
 				goTyp = p.GenerateName(goTyp)
 			}
+		}
+
+		if oneof {
+			p.useUnsafe = true
+
+			p.P(`//Check method `, fieldName, ` - update field`)
+			p.P(`func (e *`, mName, `) Get`, fieldName, `() `, goTyp, ` {`)
+			p.P(`var resp `, goTyp)
+			p.P(`if e.`, fieldName, ` != nil {`)
+			//p.P(`resp = e.`, fieldName)
+			p.P(`resp = *((*`, goTyp, `)(unsafe.Pointer(e.`, fieldName, `)))`)
+			p.P(`}`)
+			p.P(`return resp`)
+			p.P(`}`)
 		}
 
 		p.useMongoDr = true
@@ -655,8 +675,16 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *generator.Descriptor) {
 		goTyp, _ := p.GoType(message, field)
 		fieldName = generator.CamelCase(fieldName)
 		mapName := strings.ToLower(fieldName)
+		oneOf := field.OneofIndex != nil
 
-		if field.IsScalar() {
+		if oneOf {
+
+			p.P(`// set `, fieldName)
+			p.P(`if e.`, fieldName, ` != nil {`)
+			p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.Get`, fieldName, `()})`)
+			p.P(`}`)
+
+		} else if field.IsScalar() {
 
 			if strings.ToLower(goTyp) == "bool" {
 				p.P(`// set `, fieldName)
@@ -875,7 +903,7 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 	p.In()
 	p.P(`// create MongoDB Model from protobuf (`, p.GenerateName(message.GetName()), `)`)
 	p.P(`type `, p.GenerateName(message.GetName()), ` struct {`)
-	oneofs := make(map[string]struct{})
+	//oneofs := make(map[string]struct{})
 	for _, field := range message.GetField() {
 
 		//nullable := gogoproto.IsNullable(field)
@@ -892,14 +920,8 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 		}
 
 		if oneOf {
-			if _, ok := oneofs[fieldName]; ok {
-				continue
-			} else {
-				oneofs[fieldName] = struct{}{}
-			}
-		}
-
-		if bomField != nil && bomField.Tag.GetMongoObjectId() {
+			p.P(fieldName, ` *`, goTyp)
+		} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
 
 			repeated := field.IsRepeated()
 			if repeated {
@@ -1031,7 +1053,7 @@ func (p *MongoPlugin) fieldsToPBStructure(field *descriptor.FieldDescriptorProto
 			// if one of click
 			sourceName := p.GetFieldName(message, field)
 			interfaceName := p.Generator.OneOfTypeName(message, field)
-			p.P(`resp.`, sourceName, ` = &`, interfaceName, `{e.`, fieldName, `}`)
+			p.P(`resp.`, sourceName, ` = &`, interfaceName, `{e.Get`, fieldName, `()}`)
 
 		} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
 			repeated := field.IsRepeated()
@@ -1139,7 +1161,10 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 
 			// if one of click
 			//sourceName :=  p.GetFieldName(message, field)
-			p.P(`resp.`, fieldName, ` = e.Get`, fieldName, `()`)
+			p.P(`// oneof link`)
+			p.P(`link`, fieldName, ` := e.Get`, fieldName, `()`)
+			p.P(`resp.`, fieldName, ` = &link`, fieldName, ``)
+			p.P(``)
 
 		} else {
 			p.P(`resp.`, fieldName, ` = e.`, fieldName)

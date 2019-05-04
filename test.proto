@@ -2,225 +2,209 @@ syntax = "proto3";
 
 package main;
 
-import "google/protobuf/timestamp.proto";
 import "github.com/cjp2600/protoc-gen-bom/plugin/options/bom.proto";
+import "google/protobuf/timestamp.proto";
 import "github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis/google/api/annotations.proto";
 
-// сервис пользователей
-service UserService {
+// Сервис провайдеров
+service ProviderService {
 
-    // получение версии сервиса
+    rpc ProvidersList (ProviderListQueryRequest) returns (ProvidersResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/providers"
+         };
+    }
+
+    rpc CreateProvider (Provider) returns (ProviderResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/providers"
+            body: "*"
+         };
+    }
+
     rpc Version (Empty) returns (VersionResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users/version"
+            get: "/api/v1/providers/version"
          };
     }
 
-    // создание пользователя
-    rpc CreateUser (UserRequest) returns (UserResponse) {
+    rpc GetCurrentProvider (EmptyRequest) returns (ProviderResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users"
+            get: "/api/v1/providers/current"
+         };
+    }
+
+    rpc GetBulkProvider (BulkIdsRequest) returns (ProvidersResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/providers/bulk"
             body: "*"
          };
     }
 
-    // получение списка пользователей
-    rpc GetAllUsers (UserListQueryRequest) returns (UsersResponse) {
+    rpc GetOneProvider (GetByIdRequest) returns (ProviderResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users"
+            get: "/api/v1/providers/{id}"
          };
     }
 
-    // получение спска сервисов (для создания тапа)
-    rpc Services (Empty) returns (ServicesResponse) {
+    rpc DeleteProvider (DeleteProviderRequest) returns (RemoveResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users/services"
+            delete: "/api/v1/providers/{id}"
          };
     }
 
-    // получение текущего пользователя
-    rpc CurrentUser (Empty) returns (UserResponse) {
+    rpc DeleteOneProvider (GetByIdRequest) returns (ProviderResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users/current"
+            delete: "/api/v1/providers/{id}"
          };
     }
 
-    // обновление токена
-    rpc RefreshToken (RefreshTokenRequest) returns (TokenResponse) {
+    rpc AssignUser (AssignUserRequest) returns (ProviderUsersResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users/refresh"
+            post: "/api/v1/providers/{id}/users"
             body: "*"
          };
     }
 
-    // выход
-    rpc Logout (Empty) returns (EmptyResponse) {
+    rpc DeleteUser (DeleteAssignUserRequest) returns (RemoveResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users/logout"
+            delete: "/api/v1/providers/{id}/users/{userId}"
+         };
+    }
+
+    rpc GetAllManufactures (ProviderListQueryRequest) returns (ManufacturesResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/manufactures"
+         };
+    }
+
+    rpc CreateManufacture (Manufacture) returns (ManufactureResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/manufactures"
             body: "*"
          };
     }
 
-    // получение спаска всех групп
-    rpc GetAllGroups (GroupListQueryRequest) returns (GroupsResponse) {
+    rpc DeleteManufacture (GetByIdRequest) returns (EmptyResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users/groups"
+            delete: "/api/v1/manufactures/{id}"
          };
     }
 
-    // назначение группы поьзователю
-    rpc AssignGroupToUser (AssignGroupRequest) returns (UserResponse) {
+    rpc UpdateProvider (Provider) returns (ProviderResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users/groups/assign"
+            put: "/api/v1/providers/{id}"
             body: "*"
          };
-    }
-
-    // авторизация
-    rpc Auth (AuthRequest) returns (TokenResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/login"
-            body: "*"
-         };
-    }
-
-    // сброс пароля
-    rpc ResetPassword (ResetRequest) returns (EmptyResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/password/reset"
-            body: "*"
-         };
-    }
-
-    // востановлние пароля
-    rpc RecoverPassword (RecoverRequest) returns (EmptyResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/password/recover"
-            body: "*"
-         };
-    }
-
-    // подтверждение email
-    rpc EmailConfirm (EmailConfirmRequest) returns (EmptyResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/confirm"
-            body: "*"
-         };
-    }
-
-    // создание группы
-    rpc CreateGroup (Group) returns (GroupResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/groups"
-            body: "*"
-         };
-    }
-
-    // обновление пользователя
-    rpc UpdateUser (UpdateUserRequest) returns (UserResponse) {
-        option (google.api.http) = {
-            put: "/api/v1/users/{id}"
-         };
-    }
-
-    // еденичное получение пользователя
-    rpc GetOneUser (GetUserByIdRequest) returns (UserResponse) {
-        option (google.api.http) = {
-            get: "/api/v1/users/{id}"
-         };
-    }
-
-    // обновление паоля
-    rpc UpdatePassword (UpdatePasswordRequest) returns (EmptyResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/{id}/password"
-            body: "*"
-         };
-    }
-
-    rpc ValidateToken (Token) returns (UserResponse) {
     }
 
 }
 
-enum UserTypes {
-    user = 0;
-    merchant = 1;
-    provider = 2;
-    point = 3;
-    admin = 4;
+// Requests
+message BulkIdsRequest {
+    repeated string ids = 1;
 }
 
-message UserListSortFields {
-    enum Sort {
-        _id = 0;
-        firstName = 1;
-        lastName = 2;
-        secondName = 3;
-        createdAt = 4;
-        updatedAt = 5;
-    }
+message GetByIdRequest {
+    string id = 1;
 }
 
-message GroupListSortFields {
-    enum Sort {
-        _id = 0;
-        name = 1;
-    }
+message EmptyRequest {
 }
 
-enum SortTypes {
-    asc = 0;
-    desc = 1;
+message AssignUserRequest {
+    string id = 1;
+    repeated string userIds = 2;
+}
+
+message EmptyResponse {
+    int32 status = 1;
+    string message = 2;
+}
+
+message VersionResponse {
+    int32 status = 1;
+    string version = 2;
+}
+
+message DeleteAssignUserRequest {
+    string id = 1;
+    string userId = 2;
+}
+
+message DeleteProviderRequest {
+    string id = 1;
+}
+
+message ProviderRequest {
+    string name = 2;
+    string description = 3;
+    string logo = 4;
+    repeated Warehouse warehouses = 5;
 }
 
 message Empty {
 }
 
-message GetUserByIdRequest {
-    string id = 1;
+message Warehouse {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+     };
+
+    string address = 1;
 }
 
-message ResetRequest {
-    string email = 1;
+message Provider {
+
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "provider"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
+
+    oneof activeField {
+        bool active = 2;
+    }
+
+    string name = 3;
+    string description = 4;
+    string logo = 5;
+    string siteCountryCode = 6;
+    string siteCountryName = 7;
+
+    google.protobuf.Timestamp createdAt = 8;
+    google.protobuf.Timestamp updatedAt = 9;
 }
 
-message UpdatePasswordRequest {
-    string id = 1;
-    string password = 2;
+message Manufacture {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "manufacture"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
+    string name = 2;
+    string siteCountryCode = 3;
+    string siteCountryName = 4;
 }
 
-message RecoverRequest {
-    string email = 1;
-    string password = 2;
-    string passwordResetCode = 3;
-}
+message ProviderUsers {
 
-message EmailConfirmRequest {
-    string email = 1;
-    string code = 2;
-}
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "provider_users"
+     };
 
-message UserListSortQuery {
-    UserListSortFields.Sort field = 1;
-    SortTypes type = 2;
-}
-
-message GroupListSortQuery {
-    GroupListSortFields.Sort field = 1;
-    SortTypes type = 2;
-}
-
-message UserListQueryRequest {
-    int32 page = 1;
-    int32 size = 2;
-    UserListSortQuery sort = 3;
-}
-
-message GroupListQueryRequest {
-    int32 page = 1;
-    int32 size = 2;
-    GroupListSortQuery sort = 3;
+    string providerId = 1 [(bom.field).tag = {mongoObjectId:true}];
+    string userId = 2 [(bom.field).tag = {mongoObjectId:true}];
 }
 
 message Pagination {
@@ -230,210 +214,61 @@ message Pagination {
     int32 size = 4;
 }
 
-message EmptyResponse {
+message ProviderResponse {
     int32 status = 1;
     string message = 2;
+    Provider data = 3;
 }
 
-message UsersResponse {
+message ManufactureResponse {
     int32 status = 1;
     string message = 2;
-    repeated User data = 3;
+    Manufacture data = 3;
+}
+
+message ProvidersResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Provider data = 3;
+    Pagination pagination = 4;
+}
+message ManufacturesResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Manufacture data = 3;
     Pagination pagination = 4;
 }
 
-message UserResponse {
+message RemoveResponse {
     int32 status = 1;
     string message = 2;
-    User data = 3;
 }
 
-message RefreshTokenRequest {
-    string refreshToken = 1;
-}
-
-message VersionResponse {
-    int32 status = 1;
-    string version = 2;
-}
-
-message TokenResponse {
+message ProviderUsersResponse {
     int32 status = 1;
     string message = 2;
-    Token data = 3;
+    repeated ProviderUsers data = 3;
 }
 
-message Service {
-    enum ServiceName {
-        _ = 0;
-        bank = 1;
-        user = 2;
-        provider = 3;
-        merchant = 4;
-        contract = 5;
-        products = 6;
-        report = 7;
-        reciept = 8;
-        storage = 9;
-        spider = 10;
-        cashier = 11;
-        notification = 12;
+message ProviderListSortFields {
+    enum Sort {
+        _id = 0;
+        Address = 1;
     }
-    ServiceName name = 1;
 }
 
-message ServicesResponse {
-    int32 status = 1;
-    string message = 2;
-    repeated Service data = 3;
+enum SortTypes {
+    asc = 0;
+    desc = 1;
 }
 
-message GroupResponse {
-    int32 status = 1;
-    string message = 2;
-    Group data = 3;
+message ProviderListSortQuery {
+    ProviderListSortFields.Sort field = 1;
+    SortTypes type = 2;
 }
 
-message GroupsResponse {
-    int32 status = 1;
-    string message = 2;
-    repeated Group data = 3;
-    Pagination pagination = 4;
-}
-
-message AuthRequest {
-    string email = 1;
-    string password = 2;
-}
-
-message AssignGroupRequest {
-    repeated string groups = 1;
-    string userId = 2;
-}
-
-message UpdateUserRequest {
-    string id = 1;
-    bool active = 2;
-    UserTypes type = 3;
-    string firstName = 4;
-    string lastName = 5;
-    string secondName = 6;
-    string phone = 7;
-    string company = 8;
-}
-
-message UserRequest {
-    bool active = 1;
-    UserTypes type = 2;
-    string firstName = 3;
-    string lastName = 4;
-    string secondName = 5;
-    string phone = 6;
-    string company = 7;
-    string email = 8;
-    string password = 9;
-}
-
-message Group {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "group"
-     };
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
-    string name = 2;
-    map<string, Permission> permissions = 3;
-}
-
-message Permission {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-     };
-
-
-    bool c = 2;
-    bool r = 3;
-    bool u = 4;
-    bool d = 5;
-}
-
-message UserGroup {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-     };
-
-    string id = 1;
-    string name = 2;
-}
-
-message User {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "user"
-     };
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
-
-    oneof activeField {
-        bool active = 2;
-        int32 ac = 44;
-    }
-
-    oneof payedField {
-        bool payed = 18;
-    }
-
-    string firstName = 3;
-    string lastName = 4;
-    string secondName = 5;
-    string phone = 6;
-    string company = 7;
-    repeated UserGroup groups = 8;
-
-    oneof emailConfirmField {
-        bool emailConfirm = 9;
-    }
-
-    map<string, Permission> permissions = 10;
-    map<string, string> str = 16;
-    map<string, int32> inttt = 17;
-    string email = 11;
-    string password = 12;
-    UserTypes type = 13;
-    google.protobuf.Timestamp createdAt = 14;
-    google.protobuf.Timestamp updatedAt = 15;
-}
-
-message Token {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "token"
-     };
-
-    string userId = 1 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор (object)
-    string accessToken = 2;
-    string refreshToken = 3;
-}
-
-message ResetKeys {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "reset_keys"
-     };
-
-    string userId = 3 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор (object)
-    string code = 1;
-    bool used = 2;
+message ProviderListQueryRequest {
+    int32 page = 1;
+    int32 size = 2;
+    ProviderListSortQuery sort = 3;
 }
