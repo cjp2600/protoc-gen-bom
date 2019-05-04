@@ -1160,10 +1160,12 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 		if oneof {
 
 			// if one of click
-			//sourceName :=  p.GetFieldName(message, field)
+			sourceName := p.GetFieldName(message, field)
 			p.P(`// oneof link`)
+			p.P(`if e.Get`, sourceName, `() != nil {`)
 			p.P(`link`, fieldName, ` := e.Get`, fieldName, `()`)
 			p.P(`resp.`, fieldName, ` = &link`, fieldName, ``)
+			p.P(`}`)
 			p.P(``)
 
 		} else {
