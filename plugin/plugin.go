@@ -71,7 +71,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 
 	p.usePrimitive = false
 	p.GenerateBomObject()
-	for _, msg := range file.GetMessageType() {
+	for _, msg := range file.Messages() {
 		if bomMessage, ok := p.getMessageOptions(msg); ok {
 			if bomMessage.GetModel() {
 
@@ -106,8 +106,8 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 	}
 }
 
-func (p *MongoPlugin) getMessageOptions(msg *descriptor.DescriptorProto) (*bom.BomMessageOptions, bool) {
-	opt := msg.GetOptions()
+func (p *MongoPlugin) getMessageOptions(message *generator.Descriptor) (*bom.BomMessageOptions, bool) {
+	opt := message.GetOptions()
 	if opt != nil {
 		v, err := proto.GetExtension(opt, bom.E_Opts)
 		if err != nil {
@@ -138,7 +138,7 @@ func (p *MongoPlugin) getFieldOptions(field *descriptor.FieldDescriptorProto) *b
 }
 
 //GenerateBoundMessage
-func (p *MongoPlugin) GenerateBoundMessage(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateBoundMessage(message *generator.Descriptor) {
 	if opt, ok := p.getMessageOptions(message); ok {
 		if len(opt.GetBoundMessage()) > 0 {
 			bm := opt.GetBoundMessage()
@@ -157,7 +157,7 @@ func (p *MongoPlugin) GenerateBoundMessage(message *descriptor.DescriptorProto) 
 }
 
 // GenerateObjectId
-func (p *MongoPlugin) GenerateObjectId(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateObjectId(message *generator.Descriptor) {
 	mName := p.GenerateName(message.GetName())
 	for _, field := range message.GetField() {
 		fieldName := field.GetName()
@@ -176,7 +176,7 @@ func (p *MongoPlugin) GenerateObjectId(message *descriptor.DescriptorProto) {
 }
 
 //p.GenerateContructor(msg)
-func (p *MongoPlugin) getCollection(message *descriptor.DescriptorProto) string {
+func (p *MongoPlugin) getCollection(message *generator.Descriptor) string {
 	collection := strings.ToLower(message.GetName())
 	bomMessage, ok := p.getMessageOptions(message)
 	if ok {
@@ -201,7 +201,7 @@ func (p *MongoPlugin) GetServiceName(file *generator.FileDescriptor) string {
 	return name
 }
 
-func (p *MongoPlugin) GenerateContructor(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateContructor(message *generator.Descriptor) {
 	gName := p.GenerateName(message.GetName())
 	bomMessage, ok := p.getMessageOptions(message)
 	if ok {
@@ -219,7 +219,7 @@ func (p *MongoPlugin) GenerateContructor(message *descriptor.DescriptorProto) {
 }
 
 // GenerateFindMethod
-func (p *MongoPlugin) GenerateWhereMethod(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateWhereMethod(message *generator.Descriptor) {
 	gName := p.GenerateName(message.GetName())
 	p.P()
 	p.P(`// Where method`)
@@ -379,7 +379,7 @@ func (p *MongoPlugin) GenerateBomObject() {
 	p.P()
 }
 
-func (p *MongoPlugin) GenerateBomConnection(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateBomConnection(message *generator.Descriptor) {
 	gName := p.GenerateName(message.GetName())
 	p.P()
 	p.P(`// set custom bom wrapper`)
@@ -389,7 +389,7 @@ func (p *MongoPlugin) GenerateBomConnection(message *descriptor.DescriptorProto)
 	p.P(`}`)
 }
 
-func (p *MongoPlugin) GenerateGetBom(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateGetBom(message *generator.Descriptor) {
 	gName := p.GenerateName(message.GetName())
 	p.P()
 	p.P(`// GetSourceBom - Get the source object`)
@@ -398,7 +398,7 @@ func (p *MongoPlugin) GenerateGetBom(message *descriptor.DescriptorProto) {
 	p.P(`}`)
 }
 
-func (p *MongoPlugin) GenerateWhereInMethod(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateWhereInMethod(message *generator.Descriptor) {
 	gName := p.GenerateName(message.GetName())
 	p.P()
 	p.P(`// WhereIn method`)
@@ -408,7 +408,7 @@ func (p *MongoPlugin) GenerateWhereInMethod(message *descriptor.DescriptorProto)
 	p.P(`}`)
 }
 
-func (p *MongoPlugin) GenerateOrWhereMethod(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateOrWhereMethod(message *generator.Descriptor) {
 	gName := p.GenerateName(message.GetName())
 	p.P()
 	p.P(`// OrWhere method`)
@@ -419,7 +419,7 @@ func (p *MongoPlugin) GenerateOrWhereMethod(message *descriptor.DescriptorProto)
 }
 
 // GenerateFindMethod
-func (p *MongoPlugin) GenerateFindMethod(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateFindMethod(message *generator.Descriptor) {
 	gName := p.GenerateName(message.GetName())
 	p.P()
 	p.P(`// Find  find method`)
@@ -438,18 +438,15 @@ func (p *MongoPlugin) GenerateFindMethod(message *descriptor.DescriptorProto) {
 }
 
 //GenerateFindOneMethod
-func (p *MongoPlugin) GenerateFindOneMethod(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateFindOneMethod(message *generator.Descriptor) {
 
 	for _, field := range message.GetField() {
-		des := &generator.Descriptor{
-			DescriptorProto: message,
-		}
 
 		//nullable := gogoproto.IsNullable(field)
 		repeated := field.IsRepeated()
 		fieldName := field.GetName()
 		//oneOf := field.OneofIndex != nil
-		goTyp, _ := p.GoType(des, field)
+		goTyp, _ := p.GoType(message, field)
 		fieldName = generator.CamelCase(fieldName)
 		mName := p.GenerateName(message.GetName())
 
@@ -486,18 +483,15 @@ func (p *MongoPlugin) GenerateFindOneMethod(message *descriptor.DescriptorProto)
 }
 
 //GenerateUpdateOneMethod
-func (p *MongoPlugin) GenerateUpdateOneMethod(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
 
 	for _, field := range message.GetField() {
-		des := &generator.Descriptor{
-			DescriptorProto: message,
-		}
 		fieldName := field.GetName()
 		if strings.ToLower(fieldName) == "id" {
 			continue
 		}
 
-		goTyp, _ := p.GoType(des, field)
+		goTyp, _ := p.GoType(message, field)
 		fieldName = generator.CamelCase(fieldName)
 		mName := p.GenerateName(message.GetName())
 
@@ -544,7 +538,7 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *descriptor.DescriptorProt
 }
 
 //GerateWhereId
-func (p *MongoPlugin) GerateWhereId(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GerateWhereId(message *generator.Descriptor) {
 	mName := p.GenerateName(message.GetName())
 	for _, field := range message.GetField() {
 		fieldName := field.GetName()
@@ -576,7 +570,7 @@ func (p *MongoPlugin) GerateWhereId(message *descriptor.DescriptorProto) {
 }
 
 //GenerateInsertMethod
-func (p *MongoPlugin) GenerateInsertMethod(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateInsertMethod(message *generator.Descriptor) {
 	//typeName := p.GenerateName(message.GetName())
 	mName := p.GenerateName(message.GetName())
 	p.usePrimitive = true
@@ -613,7 +607,7 @@ func (p *MongoPlugin) GenerateInsertMethod(message *descriptor.DescriptorProto) 
 }
 
 //GenerateBehaviorInterface
-func (p *MongoPlugin) GenerateBehaviorInterface(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateBehaviorInterface(message *generator.Descriptor) {
 	p.In()
 	typeName := p.GenerateName(message.GetName())
 	p.P(`// The following are interfaces you can implement for special behavior during Mongo/PB conversions`)
@@ -635,7 +629,7 @@ func (p *MongoPlugin) GenerateBehaviorInterface(message *descriptor.DescriptorPr
 }
 
 //GenerateUpdateAllMethod
-func (p *MongoPlugin) GenerateUpdateAllMethod(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateUpdateAllMethod(message *generator.Descriptor) {
 	gName := p.GenerateName(message.GetName())
 	p.P()
 	p.P(`//Update - update model method, a check is made on existing fields.`)
@@ -644,9 +638,6 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *descriptor.DescriptorProt
 	p.P(`var upResult primitive.D`)
 
 	for _, field := range message.GetField() {
-		des := &generator.Descriptor{
-			DescriptorProto: message,
-		}
 		fieldName := field.GetName()
 		// skip _id field UpdatedAt
 		if strings.ToLower(fieldName) == "id" || strings.ToLower(fieldName) == "createdat" || strings.ToLower(fieldName) == "updatedat" {
@@ -661,7 +652,7 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *descriptor.DescriptorProt
 		//e.ManufactureId.Hex() != "000000000000000000000000"
 
 		// find goType
-		goTyp, _ := p.GoType(des, field)
+		goTyp, _ := p.GoType(message, field)
 		fieldName = generator.CamelCase(fieldName)
 		mapName := strings.ToLower(fieldName)
 
@@ -880,20 +871,18 @@ func (g *MongoPlugin) GoMapTypeCustomMongo(d *generator.Descriptor, field *descr
 	return m, isMessage
 }
 
-func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 	p.In()
 	p.P(`// create MongoDB Model from protobuf (`, p.GenerateName(message.GetName()), `)`)
 	p.P(`type `, p.GenerateName(message.GetName()), ` struct {`)
 	oneofs := make(map[string]struct{})
 	for _, field := range message.GetField() {
-		des := &generator.Descriptor{
-			DescriptorProto: message,
-		}
+
 		//nullable := gogoproto.IsNullable(field)
 		//repeated := field.IsRepeated()
 		fieldName := field.GetName()
 		oneOf := field.OneofIndex != nil
-		goTyp, _ := p.GoType(des, field)
+		goTyp, _ := p.GoType(message, field)
 		fieldName = generator.CamelCase(fieldName)
 
 		bomField := p.getFieldOptions(field)
@@ -949,7 +938,7 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 	p.P(``)
 }
 
-func (p *MongoPlugin) GenerateToPB(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateToPB(message *generator.Descriptor) {
 	p.In()
 	mName := p.GenerateName(message.GetName())
 	p.P(`func (e *`, mName, `) ToPB() *`, message.GetName(), ` {`)
@@ -961,7 +950,7 @@ func (p *MongoPlugin) GenerateToPB(message *descriptor.DescriptorProto) {
 			// skip field
 			continue
 		}
-		p.GenerateFieldConversion(field, message, bomField)
+		p.fieldsToPBStructure(field, message, bomField)
 	}
 
 	p.P(`return &resp`)
@@ -970,14 +959,14 @@ func (p *MongoPlugin) GenerateToPB(message *descriptor.DescriptorProto) {
 	p.P(``)
 }
 
-func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorProto, message *descriptor.DescriptorProto, bomField *bom.BomFieldOptions) {
+func (p *MongoPlugin) fieldsToPBStructure(field *descriptor.FieldDescriptorProto, message *generator.Descriptor, bomField *bom.BomFieldOptions) {
 	fieldName := field.GetName()
 	fieldName = generator.CamelCase(fieldName)
-	des := &generator.Descriptor{
-		DescriptorProto: message,
-	}
-	goTyp, _ := p.GoType(des, field)
+	oneof := field.OneofIndex != nil
+
+	goTyp, _ := p.GoType(message, field)
 	p.In()
+
 	if p.IsMap(field) {
 		m, ism := p.GoMapTypeCustomPB(nil, field)
 		_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
@@ -1036,11 +1025,17 @@ func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorP
 		}
 
 	} else {
-		if bomField != nil && bomField.Tag.GetMongoObjectId() {
 
+		if oneof {
+
+			// if one of click
+			sourceName := p.GetFieldName(message, field)
+			interfaceName := p.Generator.OneOfTypeName(message, field)
+			p.P(`resp.`, sourceName, ` = &`, interfaceName, `{e.`, fieldName, `}`)
+
+		} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
 			repeated := field.IsRepeated()
 			if repeated {
-
 				p.P(`if len(e.`, fieldName, `) > 0 {`)
 				p.P(`var sub`, fieldName, goTyp)
 				p.P(`for _, b := range `, `e.`, fieldName, `{`)
@@ -1052,7 +1047,6 @@ func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorP
 			} else {
 				p.P(`resp.`, fieldName, ` = e.`, fieldName, `.Hex()`)
 			}
-
 		} else {
 			p.P(`resp.`, fieldName, ` = e.`, fieldName)
 		}
@@ -1060,13 +1054,13 @@ func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorP
 	p.Out()
 }
 
-func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDescriptorProto, message *descriptor.DescriptorProto, bomField *bom.BomFieldOptions) {
+func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDescriptorProto, message *generator.Descriptor, bomField *bom.BomFieldOptions) {
 	fieldName := field.GetName()
 	fieldName = generator.CamelCase(fieldName)
-	des := &generator.Descriptor{
-		DescriptorProto: message,
-	}
-	goTyp, _ := p.GoType(des, field)
+	goTyp, _ := p.GoType(message, field)
+
+	oneof := field.OneofIndex != nil
+
 	p.In()
 
 	if p.IsMap(field) {
@@ -1141,12 +1135,20 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 		}
 
 	} else {
-		p.P(`resp.`, fieldName, ` = e.`, fieldName)
+		if oneof {
+
+			// if one of click
+			//sourceName :=  p.GetFieldName(message, field)
+			p.P(`resp.`, fieldName, ` = e.Get`, fieldName, `()`)
+
+		} else {
+			p.P(`resp.`, fieldName, ` = e.`, fieldName)
+		}
 	}
 	p.Out()
 }
 
-func (p *MongoPlugin) GenerateToObject(message *descriptor.DescriptorProto) {
+func (p *MongoPlugin) GenerateToObject(message *generator.Descriptor) {
 	p.In()
 	mName := p.GenerateName(message.GetName())
 	p.P(`// ToMongo runs the BeforeToMongo hook if present, converts the fields of this`)

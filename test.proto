@@ -382,14 +382,26 @@ message User {
 
     string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
 
-    bool active = 2;
+    oneof activeField {
+        bool active = 2;
+        int32 ac = 44;
+    }
+
+    oneof payedField {
+        bool payed = 18;
+    }
+
     string firstName = 3;
     string lastName = 4;
     string secondName = 5;
     string phone = 6;
     string company = 7;
     repeated UserGroup groups = 8;
-    bool EmailConfirm = 9;
+
+    oneof emailConfirmField {
+        bool emailConfirm = 9;
+    }
+
     map<string, Permission> permissions = 10;
     map<string, string> str = 16;
     map<string, int32> inttt = 17;
