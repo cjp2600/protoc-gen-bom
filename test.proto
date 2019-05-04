@@ -1,178 +1,228 @@
 syntax = "proto3";
 
-import "github.com/cjp2600/protoc-gen-bom/plugin/options/bom.proto";
-import "google/protobuf/timestamp.proto";
-import "github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis/google/api/annotations.proto";
-
 package main;
 
-// Сервис работы с контрактами
-service ContractService {
+import "google/protobuf/timestamp.proto";
+import "github.com/cjp2600/protoc-gen-bom/plugin/options/bom.proto";
+import "github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis/google/api/annotations.proto";
 
-    // вывод версии сервиса
+// сервис пользователей
+service UserService {
+
+    // получение версии сервиса
     rpc Version (Empty) returns (VersionResponse) {
         option (google.api.http) = {
-            get: "/api/v1/contracts/version"
+            get: "/api/v1/users/version"
          };
     }
 
-    // метод создания контрактов
-    rpc CreateContract (Contract) returns (ContractResponse) {
+    // создание пользователя
+    rpc CreateUser (UserRequest) returns (UserResponse) {
         option (google.api.http) = {
-            post: "/api/v1/contracts"
+            post: "/api/v1/users"
             body: "*"
          };
     }
 
-    // метод создания типа контракта
-    rpc CreateContractType (ContractType) returns (ContractTypeResponse) {
+    // получение списка пользователей
+    rpc GetAllUsers (UserListQueryRequest) returns (UsersResponse) {
         option (google.api.http) = {
-            post: "/api/v1/contracts/types"
+            get: "/api/v1/users"
+         };
+    }
+
+    // получение спска сервисов (для создания тапа)
+    rpc Services (Empty) returns (ServicesResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/users/services"
+         };
+    }
+
+    // получение текущего пользователя
+    rpc CurrentUser (Empty) returns (UserResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/users/current"
+         };
+    }
+
+    // обновление токена
+    rpc RefreshToken (RefreshTokenRequest) returns (TokenResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users/refresh"
             body: "*"
          };
     }
 
-    // список всех контрктов по определенному провайдеру
-    rpc ProviderContractAllList (ProviderListQueryRequest) returns (ContractListResponse) {
+    // выход
+    rpc Logout (Empty) returns (EmptyResponse) {
         option (google.api.http) = {
-            get: "/api/v1/contracts/providers/{providerId}"
-         };
-    }
-
-    // список всех контракотов по определенному мерченту
-    rpc MerchantContractAllList (MerchantListQueryRequest) returns (ContractListResponse) {
-        option (google.api.http) = {
-            get: "/api/v1/contracts/merchants/{merchantId}"
-         };
-    }
-
-    // создание связи провайдер/тип контракта
-    rpc CreateProviderContractType (ProviderContractTypeRequest) returns (EmptyResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/contracts/types/providers"
+            post: "/api/v1/users/logout"
             body: "*"
          };
     }
 
-    // Создание запроса на контракт
-    rpc ContractRequest (CreateRequestRequest) returns (RequestResponse) {
+    // получение спаска всех групп
+    rpc GetAllGroups (GroupListQueryRequest) returns (GroupsResponse) {
         option (google.api.http) = {
-            post: "/api/v1/contracts/requests"
+            get: "/api/v1/users/groups"
+         };
+    }
+
+    // назначение группы поьзователю
+    rpc AssignGroupToUser (AssignGroupRequest) returns (UserResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users/groups/assign"
             body: "*"
          };
     }
 
-    // Получение спаска входящих запросов
-    rpc IncomingRequests (IdListQueryRequest) returns (RequestListResponse) {
+    // авторизация
+    rpc Auth (AuthRequest) returns (TokenResponse) {
         option (google.api.http) = {
-            get: "/api/v1/contracts/requests/to/{id}"
+            post: "/api/v1/users/login"
+            body: "*"
          };
     }
 
-    // Получение спаска исходящих запросов
-    rpc OutgoingRequests (IdListQueryRequest) returns (RequestListResponse) {
+    // сброс пароля
+    rpc ResetPassword (ResetRequest) returns (EmptyResponse) {
         option (google.api.http) = {
-            get: "/api/v1/contracts/requests/from/{id}"
+            post: "/api/v1/users/password/reset"
+            body: "*"
          };
     }
 
-    // вывод списка всех типов(контракта) производителя
-    rpc ContractTypeAllList (ProviderListQueryRequest) returns (ContractTypesResponse) {
+    // востановлние пароля
+    rpc RecoverPassword (RecoverRequest) returns (EmptyResponse) {
         option (google.api.http) = {
-            get: "/api/v1/contracts/{providerId}/types/all"
+            post: "/api/v1/users/password/recover"
+            body: "*"
          };
     }
 
-    // вывод списка активных типов(контракта) производителя
-    rpc ContractTypeActiveList (ProviderListQueryRequest) returns (ContractTypesResponse) {
+    // подтверждение email
+    rpc EmailConfirm (EmailConfirmRequest) returns (EmptyResponse) {
         option (google.api.http) = {
-            get: "/api/v1/contracts/{providerId}/types/active"
+            post: "/api/v1/users/confirm"
+            body: "*"
          };
     }
 
-    // получение информации о контакте
-    rpc GetOneContract (IdQueryRequest) returns (ContractResponse) {
+    // создание группы
+    rpc CreateGroup (Group) returns (GroupResponse) {
         option (google.api.http) = {
-            get: "/api/v1/contracts/{id}"
+            post: "/api/v1/users/groups"
+            body: "*"
          };
     }
+
+    // обновление пользователя
+    rpc UpdateUser (UpdateUserRequest) returns (UserResponse) {
+        option (google.api.http) = {
+            put: "/api/v1/users/{id}"
+         };
+    }
+
+    // еденичное получение пользователя
+    rpc GetOneUser (GetUserByIdRequest) returns (UserResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/users/{id}"
+         };
+    }
+
+    // обновление паоля
+    rpc UpdatePassword (UpdatePasswordRequest) returns (EmptyResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users/{id}/password"
+            body: "*"
+         };
+    }
+
+    rpc ValidateToken (Token) returns (UserResponse) {
+    }
+
 }
 
-//
-// Описание запросов/ответов
-//
+enum UserTypes {
+    user = 0;
+    merchant = 1;
+    provider = 2;
+    point = 3;
+    admin = 4;
+}
 
-// список полей доступных для сортировки
-message SortingFields {
+message UserListSortFields {
     enum Sort {
-        _id = 0; // идентификатор
+        _id = 0;
+        firstName = 1;
+        lastName = 2;
+        secondName = 3;
+        createdAt = 4;
+        updatedAt = 5;
     }
 }
 
-// список типов сортировки
+message GroupListSortFields {
+    enum Sort {
+        _id = 0;
+        name = 1;
+    }
+}
+
 enum SortTypes {
     asc = 0;
     desc = 1;
 }
 
-enum RequestType {
-    provider = 0;
-    merchant = 1;
+message Empty {
 }
 
-// сортировка
-message SortQuery {
-    SortingFields.Sort field = 1;
+message GetUserByIdRequest {
+    string id = 1;
+}
+
+message ResetRequest {
+    string email = 1;
+}
+
+message UpdatePasswordRequest {
+    string id = 1;
+    string password = 2;
+}
+
+message RecoverRequest {
+    string email = 1;
+    string password = 2;
+    string passwordResetCode = 3;
+}
+
+message EmailConfirmRequest {
+    string email = 1;
+    string code = 2;
+}
+
+message UserListSortQuery {
+    UserListSortFields.Sort field = 1;
     SortTypes type = 2;
 }
 
-// запрос на список с сортировкой c переданным провайдером
-message ProviderListQueryRequest {
+message GroupListSortQuery {
+    GroupListSortFields.Sort field = 1;
+    SortTypes type = 2;
+}
+
+message UserListQueryRequest {
     int32 page = 1;
     int32 size = 2;
-    string providerId = 4;
-    SortQuery sort = 5;
+    UserListSortQuery sort = 3;
 }
 
-// запрос на список с сортировкой c переданным мерчентом
-message MerchantListQueryRequest {
+message GroupListQueryRequest {
     int32 page = 1;
     int32 size = 2;
-    string merchantId = 4;
-    SortQuery sort = 5;
+    GroupListSortQuery sort = 3;
 }
 
-// запрос на список с сортировкой
-message ListQueryRequest {
-    int32 page = 1;
-    int32 size = 2;
-    SortQuery sort = 3;
-}
-
-// запрос на еденичное получение с id
-message IdQueryRequest {
-    string id = 4;
-}
-
-// запрос на создание (запроса на контракт)
-message CreateRequestRequest {
-    string contractTypeId = 2 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор типа (object)
-    string from = 3 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор мерчанта
-    string to = 4 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор поставщика
-    repeated string productIds = 5; // идентификатор продуктов
-    bool allProducts = 6; // флаг о участии всех товаров
-    RequestType requestType = 7;
-}
-
-// запрос на список с сортировкой c переданным id
-message IdListQueryRequest {
-    int32 page = 1;
-    int32 size = 2;
-    string id = 4;
-    SortQuery sort = 3;
-}
-
-// пагинация
 message Pagination {
     int32 totalCount = 1;
     int32 totalPages = 2;
@@ -180,237 +230,198 @@ message Pagination {
     int32 size = 4;
 }
 
-// отает спсика контрактов
-message ContractListResponse {
-    int32 status = 1;
-    string message = 2;
-    repeated Contract data = 3;
-    Pagination pagination = 4;
-}
-
 message EmptyResponse {
     int32 status = 1;
     string message = 2;
 }
 
-// вывод еденичного контракта
-message ContractResponse {
+message UsersResponse {
     int32 status = 1;
     string message = 2;
-    Contract data = 3;
-}
-
-// запрос на установку/удаление связи провайдер/контракт
-message ProviderContractTypeRequest {
-    bool active = 1;
-    string contractTypeId = 2;
-    string providerId = 3;
-}
-
-// вывод еденичного типа контракта
-message ContractTypeResponse {
-    int32 status = 1;
-    string message = 2;
-    ContractType data = 3;
-}
-
-// вывод еденичного запроса
-message RequestResponse {
-    int32 status = 1;
-    string message = 2;
-    Request data = 3;
-}
-
-// вывод пагинированного списка запроса
-message RequestListResponse {
-    int32 status = 1;
-    string message = 2;
-    repeated Request data = 3;
+    repeated User data = 3;
     Pagination pagination = 4;
 }
 
-// вывод списка типов котракта
-message ContractTypesResponse {
+message UserResponse {
     int32 status = 1;
     string message = 2;
-    repeated ContractType data = 3;
-    Pagination pagination = 4;
+    User data = 3;
 }
 
-// пустой запрос/ответ
-message Empty {
+message RefreshTokenRequest {
+    string refreshToken = 1;
 }
 
-// ответ - верия сервиса
 message VersionResponse {
-    int32 status = 1; // статус ответа
-    string version = 2; // версия
+    int32 status = 1;
+    string version = 2;
 }
 
-//
-// Описание сущностей
-//
-
-// операторы условый контракта
-enum ConditionsOperators {
-    or = 0; // условие любого выполнения из переданных
-    and = 1; // условие точного совпадения
+message TokenResponse {
+    int32 status = 1;
+    string message = 2;
+    Token data = 3;
 }
 
-// Символьные коды условий (прописываются зарание при написании нового условия)
-enum ContractCharacterCode {
-    baseCondition = 0; // базовое условие
-    successfulProductSales = 1; // успешная продажа продукции
-    SaleOfChecks = 2; // основной тип продаж чеков
-    // ...
+message Service {
+    enum ServiceName {
+        _ = 0;
+        bank = 1;
+        user = 2;
+        provider = 3;
+        merchant = 4;
+        contract = 5;
+        products = 6;
+        report = 7;
+        reciept = 8;
+        storage = 9;
+        spider = 10;
+        cashier = 11;
+        notification = 12;
+    }
+    ServiceName name = 1;
 }
 
-// статусы запросов
-enum RequestStatus {
-    pending = 0; // в ожидании
-    approve = 1; // одобрен
-    disapprove = 2; // откланен
+message ServicesResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Service data = 3;
 }
 
-// статусы контрактов
-enum ContractStatus {
-    waitApprove = 0; // в ожидании
-    open = 1; // окрытый
-    closed = 2; // закрытый
+message GroupResponse {
+    int32 status = 1;
+    string message = 2;
+    Group data = 3;
 }
 
-// сущность контрактов
-message Contract {
+message GroupsResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Group data = 3;
+    Pagination pagination = 4;
+}
+
+message AuthRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message AssignGroupRequest {
+    repeated string groups = 1;
+    string userId = 2;
+}
+
+message UpdateUserRequest {
+    string id = 1;
+    bool active = 2;
+    UserTypes type = 3;
+    string firstName = 4;
+    string lastName = 5;
+    string secondName = 6;
+    string phone = 7;
+    string company = 8;
+}
+
+message UserRequest {
+    bool active = 1;
+    UserTypes type = 2;
+    string firstName = 3;
+    string lastName = 4;
+    string secondName = 5;
+    string phone = 6;
+    string company = 7;
+    string email = 8;
+    string password = 9;
+}
+
+message Group {
     // определяем сообщение как модель
     option (bom.opts) = {
          model: true
          crud: true // нужны методы для переопределения
+         collection: "group"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
+    string name = 2;
+    map<string, Permission> permissions = 3;
+}
+
+message Permission {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+     };
+
+
+    bool c = 2;
+    bool r = 3;
+    bool u = 4;
+    bool d = 5;
+}
+
+message UserGroup {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+     };
+
+    string id = 1;
+    string name = 2;
+}
+
+message User {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "user"
      };
 
     string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
 
-    ContractType contractType = 2; // тип контракта
-
-    string providerId = 3 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор поставщика
-    string merchantId = 4 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор мерчента
-
-    bool isAllProductsInvolved = 5; // флаг участия всех товаров производителя (иначе из списка)
-    ContractStatus status = 6; // статус контракта
-    int32 progressPercent = 7; // прогресс выполнения
-    repeated ProgressEventLog eventLogs = 8; // события выполнения контракта
-    repeated string products = 9 [(bom.field).tag = {mongoObjectId:true}]; // массив учвсвующих в продуктов
-
-    google.protobuf.Timestamp expiredAt = 10; // время жизни контракта
-    google.protobuf.Timestamp createdAt = 11;
-    google.protobuf.Timestamp updatedAt = 12;
-
-    // динамичные поля не импользуешеся в БД
-    string ContractTypeId = 13 [(bom.field).tag = {mongoObjectId:true skip:true}];
+    bool active = 2;
+    string firstName = 3;
+    string lastName = 4;
+    string secondName = 5;
+    string phone = 6;
+    string company = 7;
+    repeated UserGroup groups = 8;
+    bool EmailConfirm = 9;
+    map<string, Permission> permissions = 10;
+    map<string, string> str = 16;
+    map<string, int32> inttt = 17;
+    string email = 11;
+    string password = 12;
+    UserTypes type = 13;
+    google.protobuf.Timestamp createdAt = 14;
+    google.protobuf.Timestamp updatedAt = 15;
 }
 
-// сущность типа контракта
-message ContractType {
+message Token {
     // определяем сообщение как модель
     option (bom.opts) = {
          model: true
          crud: true // нужны методы для переопределения
-         collection: "contract_type"
+         collection: "token"
      };
 
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
-    string name = 2; // название
-    string description = 3; // описание типа контракта
-    ConditionOfAchievement conditionsOfAchievement = 4; // правила достижения
-
-    google.protobuf.Timestamp createdAt = 5;
-    google.protobuf.Timestamp updatedAt = 6;
-
-    // динамические поля (необходимые только для передаче gPRC)
-    bool active = 7 [(bom.field).tag = {skip:true}]; // флаг активности в рамках одного производителя (динамическое поле)
+    string userId = 1 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор (object)
+    string accessToken = 2;
+    string refreshToken = 3;
 }
 
-// сущность условий
-message ConditionOfAchievement {
+message ResetKeys {
     // определяем сообщение как модель
     option (bom.opts) = {
          model: true
          crud: true // нужны методы для переопределения
+         collection: "reset_keys"
      };
 
-    ConditionsOperators operator = 1; // оператор
-    repeated Condition conditionAliases = 2; // условия
-}
-
-// сущность условия
-message Condition {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-     };
-
-    ContractCharacterCode code = 1; // символьный код условия контракта
-    map<string, string> arguments = 2; // аргументы условия контракта
-}
-
-// сущность доступных для работы типов контактов
-message ProviderContractType {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "providers_contract_type"
-     };
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор запроса
-    string contractTypeId = 2 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор типа (object)
-    string providerId = 3 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор провайдера
-}
-
-// запрос на участия в контракте
-message Request {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "requests"
-     };
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор запроса
-    string contractId = 2 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор (object)
-    string from = 3 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор мерчанта
-    string to = 4 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор поставщика
-    string transmittalDescription = 5; // сопроводительное описание
-
-    RequestStatus status = 8; // статус запроса
-    repeated RequestEventLog eventLogs = 9;
-
-    google.protobuf.Timestamp expiredAt = 10; // время жизни запроса
-    google.protobuf.Timestamp createdAt = 11;
-    google.protobuf.Timestamp updatedAt = 12;
-
-    // динамические поля (необходимые только для передаче gPRC)
-    Contract contract = 13 [(bom.field).tag = {skip:true}]; // сущность контракта
-}
-
-// логирование прогресса (логируется достижение прогесса)
-message ProgressEventLog {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-     };
-
-    google.protobuf.Timestamp createdAt = 1; // дата события
-    string message = 2; // описание события
-}
-
-// логирование дейсвий по запросу
-message RequestEventLog {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-     };
-
-    google.protobuf.Timestamp createdAt = 1; // дата события
-    string message = 2; // описание события
+    string userId = 3 [(bom.field).tag = {mongoObjectId:true}]; // идентификатор (object)
+    string code = 1;
+    bool used = 2;
 }

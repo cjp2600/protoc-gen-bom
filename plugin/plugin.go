@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"fmt"
 	bom "github.com/cjp2600/protoc-gen-bom/plugin/options"
 	"github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/proto"
@@ -504,7 +505,7 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *descriptor.DescriptorProt
 			goTyp = "time.Time"
 			p.useTime = true
 		} else if p.IsMap(field) {
-			m := p.GoMapType(nil, field)
+			m, _ := p.GoMapTypeCustomMongo(nil, field)
 			goTyp = m.GoType
 		} else {
 			if field.IsMessage() {
@@ -703,7 +704,7 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *descriptor.DescriptorProt
 			p.P(`}`)
 
 		} else if p.IsMap(field) {
-			m := p.GoMapType(nil, field)
+			m, _ := p.GoMapTypeCustomMongo(nil, field)
 			goTyp = m.GoType
 
 			p.P(`// set `, fieldName)
@@ -764,6 +765,121 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *descriptor.DescriptorProt
 	p.P()
 }
 
+func (g *MongoPlugin) GoMapTypeCustomPB(d *generator.Descriptor, field *descriptor.FieldDescriptorProto) (*generator.GoMapDescriptor, bool) {
+	var isMessage = false
+	if d == nil {
+		byName := g.ObjectNamed(field.GetTypeName())
+		desc, ok := byName.(*generator.Descriptor)
+		if byName == nil || !ok || !desc.GetOptions().GetMapEntry() {
+			g.Fail(fmt.Sprintf("field %s is not a map", field.GetTypeName()))
+			return nil, false
+		}
+		d = desc
+	}
+
+	m := &generator.GoMapDescriptor{
+		KeyField:   d.Field[0],
+		ValueField: d.Field[1],
+	}
+
+	// Figure out the Go types and tags for the key and value types.
+	m.KeyAliasField, m.ValueAliasField = g.GetMapKeyField(field, m.KeyField), g.GetMapValueField(field, m.ValueField)
+	keyType, _ := g.GoType(d, m.KeyAliasField)
+	valType, _ := g.GoType(d, m.ValueAliasField)
+
+	// We don't use stars, except for message-typed values.
+	// Message and enum types are the only two possibly foreign types used in maps,
+	// so record their use. They are not permitted as map keys.
+	keyType = strings.TrimPrefix(keyType, "*")
+	switch *m.ValueAliasField.Type {
+	case descriptor.FieldDescriptorProto_TYPE_ENUM:
+		valType = strings.TrimPrefix(valType, "*")
+		g.RecordTypeUse(m.ValueAliasField.GetTypeName())
+	case descriptor.FieldDescriptorProto_TYPE_MESSAGE:
+		if !gogoproto.IsNullable(m.ValueAliasField) {
+			valType = strings.TrimPrefix(valType, "*")
+		}
+		if !gogoproto.IsStdType(m.ValueAliasField) && !gogoproto.IsCustomType(field) && !gogoproto.IsCastType(field) {
+			isMessage = true
+			g.RecordTypeUse(m.ValueAliasField.GetTypeName())
+		}
+	default:
+		if gogoproto.IsCustomType(m.ValueAliasField) {
+			if !gogoproto.IsNullable(m.ValueAliasField) {
+
+				valType = strings.TrimPrefix(valType, "*")
+			}
+			if !gogoproto.IsStdType(field) {
+				g.RecordTypeUse(m.ValueAliasField.GetTypeName())
+			}
+		} else {
+
+			valType = strings.TrimPrefix(valType, "*")
+		}
+	}
+
+	m.GoType = fmt.Sprintf("map[%s]%s", keyType, valType)
+	return m, isMessage
+}
+
+func (g *MongoPlugin) GoMapTypeCustomMongo(d *generator.Descriptor, field *descriptor.FieldDescriptorProto) (*generator.GoMapDescriptor, bool) {
+	var isMessage = false
+	if d == nil {
+		byName := g.ObjectNamed(field.GetTypeName())
+		desc, ok := byName.(*generator.Descriptor)
+		if byName == nil || !ok || !desc.GetOptions().GetMapEntry() {
+			g.Fail(fmt.Sprintf("field %s is not a map", field.GetTypeName()))
+			return nil, false
+		}
+		d = desc
+	}
+
+	m := &generator.GoMapDescriptor{
+		KeyField:   d.Field[0],
+		ValueField: d.Field[1],
+	}
+
+	// Figure out the Go types and tags for the key and value types.
+	m.KeyAliasField, m.ValueAliasField = g.GetMapKeyField(field, m.KeyField), g.GetMapValueField(field, m.ValueField)
+	keyType, _ := g.GoType(d, m.KeyAliasField)
+	valType, _ := g.GoType(d, m.ValueAliasField)
+
+	// We don't use stars, except for message-typed values.
+	// Message and enum types are the only two possibly foreign types used in maps,
+	// so record their use. They are not permitted as map keys.
+	keyType = strings.TrimPrefix(keyType, "*")
+	switch *m.ValueAliasField.Type {
+	case descriptor.FieldDescriptorProto_TYPE_ENUM:
+		valType = strings.TrimPrefix(valType, "*")
+		g.RecordTypeUse(m.ValueAliasField.GetTypeName())
+	case descriptor.FieldDescriptorProto_TYPE_MESSAGE:
+		if !gogoproto.IsNullable(m.ValueAliasField) {
+			valType = strings.TrimPrefix(valType, "*")
+		}
+		if !gogoproto.IsStdType(m.ValueAliasField) && !gogoproto.IsCustomType(field) && !gogoproto.IsCastType(field) {
+			valType = g.GenerateName(valType)
+			isMessage = true
+			g.RecordTypeUse(m.ValueAliasField.GetTypeName())
+		}
+	default:
+		if gogoproto.IsCustomType(m.ValueAliasField) {
+			if !gogoproto.IsNullable(m.ValueAliasField) {
+
+				valType = strings.TrimPrefix(valType, "*")
+			}
+			if !gogoproto.IsStdType(field) {
+				g.RecordTypeUse(m.ValueAliasField.GetTypeName())
+			}
+		} else {
+
+			valType = strings.TrimPrefix(valType, "*")
+		}
+	}
+
+	m.GoType = fmt.Sprintf("map[%s]%s", keyType, valType)
+	return m, isMessage
+}
+
 func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorProto) {
 	p.In()
 	p.P(`// create MongoDB Model from protobuf (`, p.GenerateName(message.GetName()), `)`)
@@ -809,9 +925,11 @@ func (p *MongoPlugin) generateModelsStructures(message *descriptor.DescriptorPro
 			p.usePrimitive = true
 
 		} else if p.IsMap(field) {
-			m := p.GoMapType(nil, field)
+			m, _ := p.GoMapTypeCustomMongo(nil, field)
 			//_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
+
 			p.P(fieldName, ` `, m.GoType)
+
 		} else if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
 			if strings.ToLower(goTyp) == "*timestamp.timestamp" {
 				p.P(fieldName, ` time.Time`)
@@ -861,17 +979,22 @@ func (p *MongoPlugin) GenerateFieldConversion(field *descriptor.FieldDescriptorP
 	goTyp, _ := p.GoType(des, field)
 	p.In()
 	if p.IsMap(field) {
-		m := p.GoMapType(nil, field)
+		m, ism := p.GoMapTypeCustomPB(nil, field)
 		_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
 		keygoTyp, _ := p.GoType(nil, keyField)
 		keygoTyp = strings.Replace(keygoTyp, "*", "", 1)
 		keygoAliasTyp, _ := p.GoType(nil, keyAliasField)
 		keygoAliasTyp = strings.Replace(keygoAliasTyp, "*", "", 1)
 		//keyCapTyp := generator.CamelCase(keygoTyp)
+
 		p.P(`tt`, fieldName, ` := make(`, m.GoType, `)`)
 		p.P(`for k, v := range e.`, fieldName, ` {`)
 		p.In()
-		p.P(`tt`, fieldName, `[k] = v`)
+		if ism {
+			p.P(`tt`, fieldName, `[k] = v.ToPB()`)
+		} else {
+			p.P(`tt`, fieldName, `[k] = v`)
+		}
 		p.Out()
 		p.P(`}`)
 		p.P(`resp.`, fieldName, ` = tt`, fieldName)
@@ -948,7 +1071,7 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 
 	if p.IsMap(field) {
 
-		m := p.GoMapType(nil, field)
+		m, ism := p.GoMapTypeCustomMongo(nil, field)
 		_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
 		keygoTyp, _ := p.GoType(nil, keyField)
 		keygoTyp = strings.Replace(keygoTyp, "*", "", 1)
@@ -959,7 +1082,11 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 
 		p.P(`for k, v := range e.`, fieldName, ` {`)
 		p.In()
-		p.P(`tt`, fieldName, `[k] = v`)
+		if ism {
+			p.P(`tt`, fieldName, `[k] = v.ToMongo()`)
+		} else {
+			p.P(`tt`, fieldName, `[k] = v`)
+		}
 		p.Out()
 		p.P(`}`)
 		p.P(`resp.`, fieldName, ` = tt`, fieldName)
