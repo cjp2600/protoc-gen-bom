@@ -722,6 +722,14 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *generator.Descriptor) {
 
 	for _, field := range message.GetField() {
 		fieldName := field.GetName()
+
+		if strings.ToLower(fieldName) == "id" {
+			p.P(`// check if fil _id field`)
+			p.P(`if len(e.Id) > 0 {`)
+			p.P(`e.WhereId(e.Id.Hex())`)
+			p.P(`}`)
+		}
+
 		// skip _id field UpdatedAt
 		if strings.ToLower(fieldName) == "id" || strings.ToLower(fieldName) == "createdat" || strings.ToLower(fieldName) == "updatedat" {
 			continue
