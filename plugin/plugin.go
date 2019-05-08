@@ -1146,13 +1146,18 @@ func (p *MongoPlugin) fieldsToPBStructure(field *descriptor.FieldDescriptorProto
 				p.P(`if len(e.`, fieldName, `) > 0 {`)
 				p.P(`var sub`, fieldName, goTyp)
 				p.P(`for _, b := range `, `e.`, fieldName, `{`)
+				p.P(`if !b.IsZero() {`)
 				p.P(`sub`, fieldName, ` = append(sub`, fieldName, `, b.Hex())`)
+				p.P(`}`)
 				p.P(`}`)
 				p.P(`resp.`, fieldName, ` = sub`, fieldName)
 				p.P(`}`)
 
 			} else {
+				p.P(`if !e.`, fieldName, `.IsZero() {`)
 				p.P(`resp.`, fieldName, ` = e.`, fieldName, `.Hex()`)
+				p.P(`}`)
+
 			}
 		} else {
 			p.P(`resp.`, fieldName, ` = e.`, fieldName)
