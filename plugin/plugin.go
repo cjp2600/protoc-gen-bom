@@ -585,7 +585,7 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
 
 		if useWhereId {
 			p.P(`// check if fil _id field`)
-			p.P(`if len(e.Id) > 0 {`)
+			p.P(`if !e.Id.IsZero() {`)
 			p.P(`e.WhereId(e.Id.Hex())`)
 			p.P(`}`)
 		}
@@ -739,7 +739,7 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *generator.Descriptor) {
 
 		if strings.ToLower(fieldName) == "id" {
 			p.P(`// check if fil _id field`)
-			p.P(`if len(e.Id) > 0 {`)
+			p.P(`if !e.Id.IsZero() {`)
 			p.P(`e.WhereId(e.Id.Hex())`)
 			p.P(`}`)
 		}
