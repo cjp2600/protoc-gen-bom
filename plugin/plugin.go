@@ -1154,8 +1154,10 @@ func (p *MongoPlugin) fieldsToPBStructure(field *descriptor.FieldDescriptorProto
 				p.P(`}`)
 
 			} else {
-				p.P(`if !e.`, fieldName, `.IsZero() {`)
+
 				p.P(`resp.`, fieldName, ` = e.`, fieldName, `.Hex()`)
+				p.P(`if e.`, fieldName, `.Hex() == "000000000000000000000000" {`)
+				p.P(`resp.`, fieldName, ` = ""`)
 				p.P(`}`)
 
 			}
