@@ -529,6 +529,13 @@ func (p *MongoPlugin) GenerateFindOneMethod(message *generator.Descriptor) {
 
 //GenerateUpdateOneMethod
 func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
+	var useWhereId = false
+	for _, field := range message.GetField() {
+		fieldName := field.GetName()
+		if strings.ToLower(fieldName) == "id" {
+			useWhereId = true
+		}
+	}
 
 	for _, field := range message.GetField() {
 		fieldName := field.GetName()
@@ -575,6 +582,13 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
 		p.P(`if e.bom == nil {`)
 		p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 		p.P(`}`)
+
+		if useWhereId {
+			p.P(`// check if fil _id field`)
+			p.P(`if len(e.Id) > 0 {`)
+			p.P(`e.WhereId(e.Id.Hex())`)
+			p.P(`}`)
+		}
 
 		p.P(`// mongoModel := `, mName, `{}`)
 		p.P(` if !updateAt {`)
