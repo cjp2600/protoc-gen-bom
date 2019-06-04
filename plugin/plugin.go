@@ -572,6 +572,18 @@ func (p *MongoPlugin) GenerateWhereInMethod(message *generator.Descriptor) {
 	p.P(` e.bom.InWhere(field, value)`)
 	p.P(` return e`)
 	p.P(`}`)
+
+	p.P()
+	p.P(`// WhereNotIn method`)
+	p.P(`func (e *`, gName, `) WhereNotIn(field string, value interface{}) *`, gName, ` {`)
+	p.P(`// check if bom object is nil`)
+	p.P(`if e.bom == nil {`)
+	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
+	p.P(`}`)
+	p.P(`// exist in bom version >= 1.0.11`)
+	p.P(` e.bom.NotInWhere(field, value)`)
+	p.P(` return e`)
+	p.P(`}`)
 }
 
 func (p *MongoPlugin) GenerateOrWhereMethod(message *generator.Descriptor) {

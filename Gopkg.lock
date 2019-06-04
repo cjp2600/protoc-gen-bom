@@ -2,12 +2,12 @@
 
 
 [[projects]]
-  digest = "1:7719cab12aa0c544a5f6eb18287eb38a593f46f577c476279390c42de3636ea5"
+  digest = "1:218dc29f5602e3dec88f610d763ecfc968e0d48426b48cfbc6a448568c73f2e4"
   name = "github.com/cjp2600/bom"
   packages = ["."]
   pruneopts = "UT"
-  revision = "3e67d7ea4188dc4d19fca933f8bcb6d19c70504e"
-  version = "v1.0.8"
+  revision = "cc9a14153dcee7ed46657e07eabc8c8e6e1e9470"
+  version = "v1.0.11"
 
 [[projects]]
   digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
@@ -111,8 +111,8 @@
     "utilities",
   ]
   pruneopts = "UT"
-  revision = "15c7b2ea9d896c07d9b28eca57050b1ee0aea4d6"
-  version = "v1.8.6"
+  revision = "8fd5fd9d19ce68183a6b0934519dfe7fe6269612"
+  version = "v1.9.0"
 
 [[projects]]
   branch = "master"
@@ -131,7 +131,7 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  digest = "1:026f6e643ff4f5bdbc26c673882da3c174545dd7b7d423846e1a8a4f7a4fc1b9"
+  digest = "1:112e3db181969c7bde733364b757bebf0d1a39b4fc1076efab6ff478e4259775"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
@@ -166,8 +166,8 @@
     "x/network/wiremessage",
   ]
   pruneopts = "UT"
-  revision = "fd38aea397a6b7fdd52b5528e4cfd683821e7b39"
-  version = "v1.0.1"
+  revision = "be02c9f9ce6b45d6e845492277a232afd6956cc3"
+  version = "v1.0.2"
 
 [[projects]]
   branch = "master"
@@ -175,7 +175,7 @@
   name = "golang.org/x/crypto"
   packages = ["pbkdf2"]
   pruneopts = "UT"
-  revision = "e1dfcc566284e143ba8f9afbb3fa563f2a0d212b"
+  revision = "20be4c3c3ed52bfccdb2d59a412ee1a936d175a7"
 
 [[projects]]
   branch = "master"
@@ -202,11 +202,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e94955eebf1bc68e7581eeb0f135cc8f1cbbf5eecdb446c70539910518dd20d8"
+  digest = "1:7696fb5739bf671906953b8ac11e65b133700c4043fe0f4e2943cc4a303611aa"
   name = "google.golang.org/genproto"
   packages = ["googleapis/api/annotations"]
   pruneopts = "UT"
-  revision = "54afdca5d873f7b529e2ce3def1a99df16feda90"
+  revision = "fb225487d10142b5bcc35abfc6cb9a0609614976"
 
 [[projects]]
   digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
