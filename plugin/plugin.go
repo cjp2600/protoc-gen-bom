@@ -1295,12 +1295,11 @@ func (p *MongoPlugin) fieldsToPBStructure(field *descriptor.FieldDescriptorProto
 		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
 
 			if oneof {
-				p.P(`if e.`, fieldName, ` != nil {`)
+
 				p.P(`ptap`, fieldName, `, _ := ptypes.TimestampProto(e.Get`, fieldName, `())`)
 				sourceName := p.GetFieldName(message, field)
 				interfaceName := p.Generator.OneOfTypeName(message, field)
 				p.P(`resp.`, sourceName, ` = &`, interfaceName, `{ptap`, fieldName, `}`)
-				p.P(`}`)
 
 			} else {
 				p.P(`ptap`, fieldName, `, _ := ptypes.TimestampProto(e.`, fieldName, `)`)
