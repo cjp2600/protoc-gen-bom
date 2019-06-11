@@ -1195,7 +1195,12 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 		}
 
 		if oneOf {
-			p.P(fieldName, ` *`, goTyp)
+			if strings.ToLower(goTyp) == "*timestamp.timestamp" {
+				p.P(fieldName, ` *time.Time`)
+				p.useTime = true
+			} else {
+				p.P(fieldName, ` *`, goTyp)
+			}
 		} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
 
 			repeated := field.IsRepeated()
@@ -1288,9 +1293,18 @@ func (p *MongoPlugin) fieldsToPBStructure(field *descriptor.FieldDescriptorProto
 	} else if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
 
 		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
-			p.P(`ptap`, fieldName, `, _ := ptypes.TimestampProto(e.`, fieldName, `)`)
-			p.useTime = true
-			p.P(`resp.`, fieldName, ` = ptap`, fieldName)
+
+			if oneof {
+				p.P(`ptap`, fieldName, `, _ := ptypes.TimestampProto(e.Get`, fieldName, `())`)
+				sourceName := p.GetFieldName(message, field)
+				interfaceName := p.Generator.OneOfTypeName(message, field)
+				p.P(`resp.`, sourceName, ` = &`, interfaceName, `{ptap`, fieldName, `}`)
+			} else {
+				p.P(`ptap`, fieldName, `, _ := ptypes.TimestampProto(e.`, fieldName, `)`)
+				p.useTime = true
+				p.P(`resp.`, fieldName, ` = ptap`, fieldName)
+			}
+
 		} else if field.IsMessage() {
 
 			repeated := field.IsRepeated()
@@ -1391,9 +1405,26 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 
 		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
 			p.useTime = true
-			p.P(`// create time object`)
-			p.P(`ut`, fieldName, ` := time.Unix(e.`, fieldName, `.GetSeconds(), int64(e.`, fieldName, `.GetNanos()))`)
-			p.P(`resp.`, fieldName, ` = ut`, fieldName)
+
+			if oneof {
+
+				sourceName := p.GetFieldName(message, field)
+				p.P(`// oneof link`)
+				p.P(`if e.Get`, sourceName, `() != nil {`)
+				p.P(`link`, fieldName, ` := e.Get`, fieldName, `()`)
+				p.P(`if link`, fieldName, ` != nil {`)
+				p.P(`ut`, fieldName, ` := time.Unix(link`, fieldName, `.GetSeconds(), int64(link`, fieldName, `.GetNanos()))`)
+				p.P(`resp.`, fieldName, ` = &ut`, fieldName)
+				p.P(`}`)
+				p.P(`}`)
+				p.P(``)
+
+			} else {
+				p.P(`// create time object`)
+				p.P(`ut`, fieldName, ` := time.Unix(e.`, fieldName, `.GetSeconds(), int64(e.`, fieldName, `.GetNanos()))`)
+				p.P(`resp.`, fieldName, ` = ut`, fieldName)
+			}
+
 		} else if field.IsMessage() {
 			repeated := field.IsRepeated()
 			if repeated {

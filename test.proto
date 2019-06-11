@@ -177,6 +177,10 @@ message Provider {
     string siteCountryCode = 6;
     string siteCountryName = 7;
 
+    oneof closedAtField {
+        google.protobuf.Timestamp closedAt = 16;
+    }
+
     google.protobuf.Timestamp createdAt = 8;
     google.protobuf.Timestamp updatedAt = 9;
 }
