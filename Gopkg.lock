@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:320e7ead93de9fd2b0e59b50fd92a4d50c1f8ab455d96bc2eb083267453a9709"
+  name = "github.com/asaskevich/govalidator"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ccb8e960c48f04d6935e72476ae4a51028f9e22f"
+  version = "v9"
+
+[[projects]]
   digest = "1:218dc29f5602e3dec88f610d763ecfc968e0d48426b48cfbc6a448568c73f2e4"
   name = "github.com/cjp2600/bom"
   packages = ["."]
@@ -68,7 +76,7 @@
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
-  digest = "1:4c7d888a6e8a1dedccc2bafa0febdbbfaa010d8e73ed7f2561c0ccd73b0243cb"
+  digest = "1:572c09708ea608b9166576fdb18766d7da420c20e64dccd5a5a6a0e0f5de2371"
   name = "github.com/golang/protobuf"
   packages = [
     "descriptor",
@@ -78,9 +86,7 @@
     "protoc-gen-go/generator",
     "protoc-gen-go/generator/internal/remap",
     "protoc-gen-go/plugin",
-    "ptypes",
     "ptypes/any",
-    "ptypes/duration",
     "ptypes/struct",
     "ptypes/timestamp",
   ]
@@ -220,6 +226,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/asaskevich/govalidator",
     "github.com/cjp2600/bom",
     "github.com/gogo/protobuf/gogoproto",
     "github.com/gogo/protobuf/proto",
@@ -227,10 +234,8 @@
     "github.com/gogo/protobuf/protoc-gen-gogo/generator",
     "github.com/gogo/protobuf/vanity/command",
     "github.com/golang/protobuf/proto",
-    "github.com/golang/protobuf/ptypes",
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger",
-    "go.mongodb.org/mongo-driver/bson/primitive",
     "go.mongodb.org/mongo-driver/mongo",
     "go.mongodb.org/mongo-driver/mongo/options",
     "go.mongodb.org/mongo-driver/mongo/readpref",

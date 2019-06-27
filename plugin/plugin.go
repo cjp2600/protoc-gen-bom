@@ -2,13 +2,15 @@ package plugin
 
 import (
 	"fmt"
-	bom "github.com/cjp2600/protoc-gen-bom/plugin/options"
+	"path"
+	"strings"
+
 	"github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
-	"path"
-	"strings"
+
+	bom "github.com/cjp2600/protoc-gen-bom/plugin/options"
 )
 
 type MongoPlugin struct {
@@ -38,6 +40,7 @@ func (p *MongoPlugin) GenerateImports(file *generator.FileDescriptor) {
 	if p.usePrimitive {
 		p.Generator.PrintImport("primitive", "go.mongodb.org/mongo-driver/bson/primitive")
 	}
+	p.Generator.PrintImport("valid", "github.com/asaskevich/govalidator")
 	p.Generator.PrintImport("context", "context")
 	p.Generator.PrintImport("os", "os")
 	p.Generator.PrintImport("time", "time")
@@ -80,9 +83,6 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 		if bomMessage, ok := p.getMessageOptions(msg); ok {
 			if bomMessage.GetModel() {
 
-				p.GenerateToPB(msg)
-				p.GenerateToObject(msg)
-				p.GenerateObjectId(msg)
 				// todo: доделать генерацию конвертации в связанную модель
 				//p.GenerateBoundMessage(msg)
 
@@ -104,11 +104,14 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateOrWhereMethod(msg)
 				}
 
-				// генерируем основные методы модели
-				p.generateModelsStructures(msg)
-
 			}
 		}
+		// генерируем основные методы модели
+		p.GenerateToPB(msg)
+		p.GenerateToObject(msg)
+		p.GenerateObjectId(msg)
+		p.generateModelsStructures(msg)
+		p.generateValidationMethods(msg)
 	}
 }
 
@@ -1194,12 +1197,22 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 			continue
 		}
 
+		var tagString string
+		if bomField != nil && bomField.Tag != nil {
+			tagString = " `"
+			validTag := bomField.Tag.GetValidator()
+			if len(validTag) > 0 {
+				tagString = tagString + `valid:"` + validTag + `"`
+			}
+			tagString = tagString + "`"
+		}
+
 		if oneOf {
 			if strings.ToLower(goTyp) == "*timestamp.timestamp" {
-				p.P(fieldName, ` *time.Time`)
+				p.P(fieldName, ` *time.Time`, tagString)
 				p.useTime = true
 			} else {
-				p.P(fieldName, ` *`, goTyp)
+				p.P(fieldName, ` *`, goTyp, tagString)
 			}
 		} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
 
@@ -1219,17 +1232,17 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 			m, _ := p.GoMapTypeCustomMongo(nil, field)
 			//_, keyField, keyAliasField := m.GoType, m.KeyField, m.KeyAliasField
 
-			p.P(fieldName, ` `, m.GoType)
+			p.P(fieldName, ` `, m.GoType, tagString)
 
 		} else if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
 			if strings.ToLower(goTyp) == "*timestamp.timestamp" {
-				p.P(fieldName, ` time.Time`)
+				p.P(fieldName, ` time.Time`, tagString)
 				p.useTime = true
 			} else {
-				p.P(fieldName, ` `, p.GenerateName(goTyp))
+				p.P(fieldName, ` `, p.GenerateName(goTyp), tagString)
 			}
 		} else {
-			p.P(fieldName, ` `, goTyp)
+			p.P(fieldName, ` `, goTyp, tagString)
 		}
 	}
 	if p.useCrud {
@@ -1259,6 +1272,19 @@ func (p *MongoPlugin) GenerateToPB(message *generator.Descriptor) {
 	p.P(`}`)
 	p.Out()
 	p.P(``)
+}
+
+func (w *MongoPlugin) generateValidationMethods(message *generator.Descriptor) {
+	w.P(`// isValid - validation method of the described protobuf structure `)
+	mName := w.GenerateName(message.GetName())
+	w.P(`func (e *`, mName, `) IsValid() error {`)
+	w.P(`if _, err := valid.ValidateStruct(e); err != nil {`)
+	w.P(`return err`)
+	w.P(`}`)
+	w.P(`return nil`)
+	w.P(`}`)
+	w.Out()
+	w.P(``)
 }
 
 func (p *MongoPlugin) fieldsToPBStructure(field *descriptor.FieldDescriptorProto, message *generator.Descriptor, bomField *bom.BomFieldOptions) {

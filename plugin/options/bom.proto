@@ -43,6 +43,7 @@ message BomTag {
     optional bool mongoObjectId = 5;
     optional bool update = 6;
     optional bool additional = 7;
+    optional string validator = 8;
 }
 
 // To be used in (leiu of) the interceptor

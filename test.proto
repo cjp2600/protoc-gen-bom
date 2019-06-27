@@ -1,103 +1,213 @@
 syntax = "proto3";
 
-package main;
+package user;
 
 import "github.com/cjp2600/protoc-gen-bom/plugin/options/bom.proto";
 import "google/protobuf/timestamp.proto";
 import "github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis/google/api/annotations.proto";
 
-// Сервис провайдеров
-service ProviderService {
+// сервис пользователей
+service UserService {
 
-    rpc ProvidersList (ProviderListQueryRequest) returns (ProvidersResponse) {
-        option (google.api.http) = {
-            get: "/api/v1/providers"
-         };
-    }
-
-    rpc CreateProvider (Provider) returns (ProviderResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/providers"
-            body: "*"
-         };
-    }
-
+    // метод получение версии сервиса
     rpc Version (Empty) returns (VersionResponse) {
         option (google.api.http) = {
-            get: "/api/v1/providers/version"
+            get: "/api/v1/users/version"
          };
     }
 
-    rpc GetCurrentProvider (EmptyRequest) returns (ProviderResponse) {
+    // создание пользователя
+    rpc CreateUser (UserRequest) returns (UserResponse) {
         option (google.api.http) = {
-            get: "/api/v1/providers/current"
-         };
-    }
-
-    rpc GetBulkProvider (BulkIdsRequest) returns (ProvidersResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/providers/bulk"
+            post: "/api/v1/users"
             body: "*"
          };
     }
 
-    rpc GetOneProvider (GetByIdRequest) returns (ProviderResponse) {
+    // получение списка пользователей
+    rpc GetAllUsers (UserListQueryRequest) returns (UsersResponse) {
         option (google.api.http) = {
-            get: "/api/v1/providers/{id}"
+            get: "/api/v1/users"
          };
     }
 
-    rpc DeleteProvider (DeleteProviderRequest) returns (RemoveResponse) {
+    // получение спска сервисов (для создания тапа)
+    rpc Services (Empty) returns (ServicesResponse) {
         option (google.api.http) = {
-            delete: "/api/v1/providers/{id}"
+            get: "/api/v1/users/services"
          };
     }
 
-    rpc DeleteOneProvider (GetByIdRequest) returns (ProviderResponse) {
+    // получение текущего пользователя
+    rpc CurrentUser (Empty) returns (UserResponse) {
         option (google.api.http) = {
-            delete: "/api/v1/providers/{id}"
+            get: "/api/v1/users/current"
          };
     }
 
-    rpc AssignUser (AssignUserRequest) returns (ProviderUsersResponse) {
+    // обновление токена
+    rpc RefreshToken (RefreshTokenRequest) returns (TokenResponse) {
         option (google.api.http) = {
-            post: "/api/v1/providers/{id}/users"
+            post: "/api/v1/users/refresh"
             body: "*"
          };
     }
 
-    rpc DeleteUser (DeleteAssignUserRequest) returns (RemoveResponse) {
+    // выход
+    rpc Logout (Empty) returns (EmptyResponse) {
         option (google.api.http) = {
-            delete: "/api/v1/providers/{id}/users/{userId}"
-         };
-    }
-
-    rpc GetAllManufactures (ProviderListQueryRequest) returns (ManufacturesResponse) {
-        option (google.api.http) = {
-            get: "/api/v1/manufactures"
-         };
-    }
-
-    rpc CreateManufacture (Manufacture) returns (ManufactureResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/manufactures"
+            post: "/api/v1/users/logout"
             body: "*"
          };
     }
 
-    rpc DeleteManufacture (GetByIdRequest) returns (EmptyResponse) {
+    // получение спаска всех групп
+    rpc GetAllGroups (GroupListQueryRequest) returns (GroupsResponse) {
         option (google.api.http) = {
-            delete: "/api/v1/manufactures/{id}"
+            get: "/api/v1/users/groups"
          };
     }
 
-    rpc UpdateProvider (Provider) returns (ProviderResponse) {
+    // назначение группы поьзователю
+    rpc AssignGroupToUser (AssignGroupRequest) returns (UserResponse) {
         option (google.api.http) = {
-            put: "/api/v1/providers/{id}"
+            post: "/api/v1/users/groups/assign"
             body: "*"
          };
     }
 
+    // авторизация
+    rpc Auth (AuthRequest) returns (TokenResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users/login"
+            body: "*"
+         };
+    }
+
+    // сброс пароля
+    rpc ResetPassword (ResetRequest) returns (EmptyResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users/password/reset"
+            body: "*"
+         };
+    }
+
+    // востановлние пароля
+    rpc RecoverPassword (RecoverRequest) returns (EmptyResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users/password/recover"
+            body: "*"
+         };
+    }
+
+    // подтверждение email
+    rpc EmailConfirm (EmailConfirmRequest) returns (EmptyResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users/confirm"
+            body: "*"
+         };
+    }
+
+    // создание группы
+    rpc CreateGroup (Group) returns (GroupResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users/groups"
+            body: "*"
+         };
+    }
+
+    // обновление группы
+    rpc UpdateGroup (Group) returns (GroupResponse) {
+        option (google.api.http) = {
+            put: "/api/v1/users/groups/{id}"
+            body: "*"
+         };
+    }
+
+    // обновление пользователя
+    rpc UpdateUser (UpdateUserRequest) returns (UserResponse) {
+        option (google.api.http) = {
+            put: "/api/v1/users/{id}"
+            body: "*"
+         };
+    }
+    // обновление активности пользователя
+    rpc UpdateActive (UpdateActiveRequest) returns (UserResponse) {
+        option (google.api.http) = {
+            put: "/api/v1/users/{id}/active"
+            body: "*"
+         };
+    }
+
+    // еденичное получение пользователя
+    rpc GetOneUser (GetUserByIdRequest) returns (UserResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/users/{id}"
+         };
+    }
+
+    // метод получение версии сервиса
+    rpc GetConfirmCode (GetUserByIdRequest) returns (ConfirmResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/users/{id}/confirm"
+         };
+    }
+
+    rpc GetBulkUser (BulkIdsRequest) returns (UsersBulkResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users/bulk"
+            body: "*"
+         };
+    }
+
+    // обновление пароля
+    rpc UpdatePassword (UpdatePasswordRequest) returns (EmptyResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/users/{id}/password"
+            body: "*"
+         };
+    }
+
+    // обновление countrypartId
+    rpc UpdateCountrypartId (UpdateCountrypartIdRequest) returns (UserResponse) {
+        option (google.api.http) = {
+            put: "/api/v1/users/{id}/countrypart"
+            body: "*"
+         };
+    }
+
+    rpc ValidateToken (Token) returns (UserResponse) {
+    }
+
+}
+
+enum UserTypes {
+    user = 0;
+    merchant = 1;
+    provider = 2;
+    point = 3;
+    admin = 4;
+    noActiveMerchant = 5;
+    noActiveProvider = 6;
+
+}
+
+message UserListSortFields {
+    enum Sort {
+        _id = 0;
+        firstName = 1;
+        lastName = 2;
+        secondName = 3;
+        createdAt = 4;
+        updatedAt = 5;
+    }
+}
+
+message GroupListSortFields {
+    enum Sort {
+        _id = 0;
+        name = 1;
+    }
 }
 
 // Requests
@@ -105,110 +215,80 @@ message BulkIdsRequest {
     repeated string ids = 1;
 }
 
-message GetByIdRequest {
-    string id = 1;
-}
-
-message EmptyRequest {
-}
-
-message AssignUserRequest {
-    string id = 1;
-    repeated string userIds = 2;
-}
-
-message EmptyResponse {
-    int32 status = 1;
-    string message = 2;
-}
-
-message VersionResponse {
-    int32 status = 1;
-    string version = 2;
-}
-
-message DeleteAssignUserRequest {
-    string id = 1;
-    string userId = 2;
-}
-
-message DeleteProviderRequest {
-    string id = 1;
-}
-
-message ProviderRequest {
-    string name = 2;
-    string description = 3;
-    string logo = 4;
-    repeated Warehouse warehouses = 5;
+enum SortTypes {
+    asc = 0;
+    desc = 1;
 }
 
 message Empty {
 }
 
-message Warehouse {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-     };
-
-    string address = 1;
+message ConfirmResponse {
+    int32 status = 1;
+    string message = 2;
+    ConfirmData data = 3;
 }
 
-message Provider {
+message ConfirmData {
+    string code = 2;
+}
+message GetUserByIdRequest {
+    string id = 1;
+}
 
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "provider"
-     };
+message ResetRequest {
+    string email = 1;
+}
 
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
+message UpdatePasswordRequest {
+    string id = 1;
+    string password = 2;
+}
 
+message UpdateCountrypartIdRequest {
+    string id = 1;
+    string countrypartId = 2;
+}
+
+message RecoverRequest {
+    string email = 1;
+    string password = 2;
+    string passwordResetCode = 3;
+}
+
+message EmailConfirmRequest {
+    string email = 1;
+    string code = 2;
+}
+
+message UserListSortQuery {
+    UserListSortFields.Sort field = 1;
+    SortTypes type = 2;
+}
+
+message GroupListSortQuery {
+    GroupListSortFields.Sort field = 1;
+    SortTypes type = 2;
+}
+
+message UserListQueryRequest {
+    int32 page = 1;
+    int32 size = 2;
+    UserListSortQuery sort = 3;
+    string counterpartyId = 4;
+    string groupId = 5;
     oneof activeField {
-        bool active = 2;
+        bool active = 6;
     }
-
-    string name = 3;
-    string description = 4;
-    string logo = 5;
-    string siteCountryCode = 6;
-    string siteCountryName = 7;
-
-    oneof closedAtField {
-        google.protobuf.Timestamp closedAt = 16;
+    oneof typeField {
+        UserTypes type = 7;
     }
-
-    google.protobuf.Timestamp createdAt = 8;
-    google.protobuf.Timestamp updatedAt = 9;
 }
 
-message Manufacture {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "manufacture"
-     };
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
-    string name = 2;
-    string siteCountryCode = 3;
-    string siteCountryName = 4;
-}
-
-message ProviderUsers {
-
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "provider_users"
-     };
-
-    string providerId = 1 [(bom.field).tag = {mongoObjectId:true}];
-    string userId = 2 [(bom.field).tag = {mongoObjectId:true}];
+message GroupListQueryRequest {
+    int32 page = 1;
+    int32 size = 2;
+    GroupListSortQuery sort = 3;
 }
 
 message Pagination {
@@ -218,61 +298,203 @@ message Pagination {
     int32 size = 4;
 }
 
-message ProviderResponse {
+message EmptyResponse {
     int32 status = 1;
     string message = 2;
-    Provider data = 3;
 }
 
-message ManufactureResponse {
+message UsersBulkResponse {
     int32 status = 1;
     string message = 2;
-    Manufacture data = 3;
+    repeated User data = 3;
 }
 
-message ProvidersResponse {
+message UsersResponse {
     int32 status = 1;
     string message = 2;
-    repeated Provider data = 3;
-    Pagination pagination = 4;
-}
-message ManufacturesResponse {
-    int32 status = 1;
-    string message = 2;
-    repeated Manufacture data = 3;
+    repeated User data = 3;
     Pagination pagination = 4;
 }
 
-message RemoveResponse {
+message UserResponse {
     int32 status = 1;
     string message = 2;
+    User data = 3;
 }
 
-message ProviderUsersResponse {
+message RefreshTokenRequest {
+    string refreshToken = 1;
+}
+
+message VersionResponse {
+    int32 status = 1;
+    string version = 2;
+}
+
+message TokenResponse {
     int32 status = 1;
     string message = 2;
-    repeated ProviderUsers data = 3;
+    Token data = 3;
 }
 
-message ProviderListSortFields {
-    enum Sort {
-        _id = 0;
-        Address = 1;
+message Service {
+    enum ServiceName {
+        _ = 0;
+        bank = 1;
+        user = 2;
+        provider = 3;
+        merchant = 4;
+        contract = 5;
+        products = 6;
+        reciept = 8;
+        storage = 9;
+        spider = 10;
+        cashier = 11;
+        notification = 12;
+        settings = 13;
+        analytics = 14;
+        progress = 15;
+    }
+    ServiceName name = 1;
+}
+
+message ServicesResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Service data = 3;
+}
+
+message GroupResponse {
+    int32 status = 1;
+    string message = 2;
+    Group data = 3;
+}
+
+message GroupsResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Group data = 3;
+    Pagination pagination = 4;
+}
+
+message AuthRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message AssignGroupRequest {
+    repeated string groups = 1;
+    repeated string groupNames = 2;
+    string userId = 3;
+}
+
+message UpdateUserRequest {
+    string id = 1;
+    oneof activeField {
+        bool active = 2;
+    }
+    UserTypes type = 3;
+    string firstName = 4;
+    string lastName = 5;
+    string secondName = 6;
+    string phone = 7;
+    string company = 8;
+    oneof legalIdField {
+        string legalId = 9;
     }
 }
 
-enum SortTypes {
-    asc = 0;
-    desc = 1;
+message UpdateActiveRequest {
+    string id = 1;
+    bool active = 2  [(bom.field).tag = {validator: "email"}];
 }
 
-message ProviderListSortQuery {
-    ProviderListSortFields.Sort field = 1;
-    SortTypes type = 2;
+message UserRequest {
+    oneof activeField {
+        bool active = 1;
+    }
+    UserTypes type = 2;
+    string firstName = 3;
+    string lastName = 4;
+    string secondName = 5;
+    string phone = 6;
+    string company = 7;
+    string email = 8;
+    string password = 9;
 }
 
-message ProviderListQueryRequest {
-    int32 page = 1;
-    int32 size = 2;
-    ProviderListSortQuery sort = 3;
+message Group {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "group"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
+    string name = 2;
+    map<string, Permission> permissions = 3;
+}
+
+message Permission {
+    option (bom.opts) = {
+         model: true
+     };
+
+    bool create = 2;
+    bool read = 3;
+    bool update = 4;
+    bool delete = 5;
+}
+
+message UserGroup {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+     };
+
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
+    string name = 2;
+}
+
+message User {
+
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
+    bool active = 2;
+    string firstName = 3;
+    string lastName = 4;
+    string secondName = 5;
+    string phone = 6;
+    string company = 7;
+    repeated UserGroup groups = 8;
+    bool emailConfirm = 9;
+    map<string, Permission> permissions = 10;
+    string email = 11;
+    UserTypes type = 12;
+    google.protobuf.Timestamp createdAt = 13;
+    google.protobuf.Timestamp updatedAt = 14;
+    string counterparty = 15;
+    string legalId = 16 [(bom.field).tag = {mongoObjectId:true}];
+}
+
+message Token {
+
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "token"
+     };
+
+    string userId = 2 [(bom.field).tag = {mongoObjectId:true}];
+    string accessToken = 3;
+    string refreshToken = 4;
 }
