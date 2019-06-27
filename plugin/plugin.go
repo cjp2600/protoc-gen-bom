@@ -1193,6 +1193,9 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 		if oneOf && bomField != nil && bomField.Tag.GetMongoObjectId() {
 			goTyp = "primitive.ObjectID"
 		}
+		if oneOf && strings.ToLower(goTyp) == "*timestamp.timestamp" {
+			goTyp = "time.Time"
+		}
 
 		if oneOf {
 			p.useUnsafe = true
