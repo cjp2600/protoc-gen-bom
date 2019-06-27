@@ -735,7 +735,7 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
 		if strings.ToLower(fieldName) == "id" {
 			continue
 		}
-		oneof := field.OneofIndex != nil
+		//oneof := field.OneofIndex != nil
 
 		goTyp, _ := p.GoType(message, field)
 		fieldName = generator.CamelCase(fieldName)
@@ -751,20 +751,6 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
 			if field.IsMessage() {
 				goTyp = p.GenerateName(goTyp)
 			}
-		}
-
-		if oneof {
-			p.useUnsafe = true
-
-			p.P(`//Check method `, fieldName, ` - update field`)
-			p.P(`func (e *`, mName, `) Get`, fieldName, `() `, goTyp, ` {`)
-			p.P(`var resp `, goTyp)
-			p.P(`if e.`, fieldName, ` != nil {`)
-			//p.P(`resp = e.`, fieldName)
-			p.P(`resp = *((*`, goTyp, `)(unsafe.Pointer(e.`, fieldName, `)))`)
-			p.P(`}`)
-			p.P(`return resp`)
-			p.P(`}`)
 		}
 
 		p.useMongoDr = true
@@ -1179,15 +1165,22 @@ func (g *MongoPlugin) GoMapTypeCustomMongo(d *generator.Descriptor, field *descr
 
 func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 	p.In()
+	mName := p.GenerateName(message.GetName())
 	p.P(`// create MongoDB Model from protobuf (`, p.GenerateName(message.GetName()), `)`)
 	p.P(`type `, p.GenerateName(message.GetName()), ` struct {`)
-	//oneofs := make(map[string]struct{})
-	for _, field := range message.GetField() {
 
-		//nullable := gogoproto.IsNullable(field)
-		//repeated := field.IsRepeated()
+	type useUnsafeMethod struct {
+		fieldName string
+		goTyp     string
+		mName     string
+	}
+
+	var nsafeScope []useUnsafeMethod
+
+	for _, field := range message.GetField() {
 		fieldName := field.GetName()
 		oneOf := field.OneofIndex != nil
+
 		goTyp, _ := p.GoType(message, field)
 		fieldName = generator.CamelCase(fieldName)
 
@@ -1195,6 +1188,16 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 		if bomField != nil && bomField.Tag.GetSkip() {
 			// skip field
 			continue
+		}
+
+		if oneOf {
+			p.useUnsafe = true
+
+			nsafeScope = append(nsafeScope, useUnsafeMethod{
+				fieldName: fieldName,
+				goTyp:     goTyp,
+				mName:     mName,
+			})
 		}
 
 		var tagString string
@@ -1251,6 +1254,20 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 	p.P(`}`)
 	p.Out()
 	p.P(``)
+
+	for _, s := range nsafeScope {
+		p.P(``)
+		p.P(`//Check method `, s.fieldName, ` - update field`)
+		p.P(`func (e *`, mName, `) Get`, s.fieldName, `() `, s.goTyp, ` {`)
+		p.P(`var resp `, s.goTyp)
+		p.P(`if e.`, s.fieldName, ` != nil {`)
+		p.P(`resp = *((*`, s.goTyp, `)(unsafe.Pointer(e.`, s.fieldName, `)))`)
+		p.P(`}`)
+		p.P(`return resp`)
+		p.P(`}`)
+		p.P(``)
+	}
+
 }
 
 func (p *MongoPlugin) GenerateToPB(message *generator.Descriptor) {

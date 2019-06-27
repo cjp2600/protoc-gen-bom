@@ -6,213 +6,163 @@ import "github.com/cjp2600/protoc-gen-bom/plugin/options/bom.proto";
 import "google/protobuf/timestamp.proto";
 import "github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis/google/api/annotations.proto";
 
-// сервис пользователей
-service UserService {
+// сервис для работы с Аптечными сетями и пунктами продаж.
+service MerchantService {
 
-    // метод получение версии сервиса
-    rpc Version (Empty) returns (VersionResponse) {
+    // получить список аптечных сетей
+    rpc MerchantsList (ListQueryRequest) returns (MerchantsResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users/version"
+            get: "/api/v1/merchants"
          };
     }
 
-    // создание пользователя
-    rpc CreateUser (UserRequest) returns (UserResponse) {
+    // получить список доступных для регистрации ас
+    rpc AvailableMerchantsList (ListQueryRequest) returns (MerchantsResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users"
+            get: "/api/v1/merchants/available"
+         };
+    }
+
+    // получить текущую аптечную сеть
+    rpc CurrentMerchant (Empty) returns (MerchantResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/merchants/current"
+         };
+    }
+
+    // создать аптечную сеть
+    rpc CreateMerchant (Merchant) returns (MerchantResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/merchants"
+            body: "*"
+         };
+    }
+    // получение спаска всех статусов
+    rpc GetAllStatuses (Empty) returns (StatusesResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/merchants/statuses"
+         };
+    }
+
+    // обновить аптечную сеть
+    rpc UpdateMerchant (UpdateMerchantFullRequest) returns (MerchantResponse) {
+        option (google.api.http) = {
+            put: "/api/v1/merchants/{id}"
+            body: "*"
+         };
+    }
+    //  получить группированный список точек продаж по ас
+    rpc GetPointByRegion (ListQueryRequest) returns (PointsResponseGrouped) {
+        option (google.api.http) = {
+            get: "/api/v1/merchants/points/group"
+         };
+    }
+
+    // получить точку продаж по id
+    rpc GetOnePoint (GetByIdRequest) returns (PointResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/merchants/points/{id}"
+         };
+    }
+
+    //  получить список точек продаж
+    rpc PointsList (ListQueryRequest) returns (PointsResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/merchants/points"
+         };
+    }
+
+    // еденисное полученте ас
+    rpc GetOneMerchant (GetByIdRequest) returns (MerchantResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/merchants/{id}"
+         };
+    }
+
+    // удаление ас
+    rpc DeleteOneMerchant (GetByIdRequest) returns (EmptyResponse) {
+        option (google.api.http) = {
+            delete: "/api/v1/merchants/{id}"
+         };
+    }
+
+    // присвоение пользователя к ас
+    rpc MerchantAssignUser (AssignUserRequest) returns (MerchantUsersResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/merchants/{id}/users"
             body: "*"
          };
     }
 
-    // получение списка пользователей
-    rpc GetAllUsers (UserListQueryRequest) returns (UsersResponse) {
+    rpc GetMerchantUsers (GetByIdRequest) returns (MerchantUsersResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users"
+            get: "/api/v1/merchants/{id}/users"
          };
     }
 
-    // получение спска сервисов (для создания тапа)
-    rpc Services (Empty) returns (ServicesResponse) {
+    // удаление пользователя от ас
+    rpc MerchantDeleteUser (UnAssignUserRequest) returns (EmptyResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users/services"
+            delete: "/api/v1/merchants/{id}/users/{userId}"
          };
     }
 
-    // получение текущего пользователя
-    rpc CurrentUser (Empty) returns (UserResponse) {
+    // создание пункта продаж
+    rpc CreatePoint (Point) returns (PointResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users/current"
+            post: "/api/v1/merchants/{merchantId}/points"
+            body: "*"
+        };
+    }
+
+    // удаление пункта продаж
+    rpc DeleteOnePoint (GetByIdRequest) returns (EmptyResponse) {
+        option (google.api.http) = {
+            delete: "/api/v1/merchants/points/{id}"
          };
     }
 
-    // обновление токена
-    rpc RefreshToken (RefreshTokenRequest) returns (TokenResponse) {
+    // обновление статуса точки
+    rpc UpdatePointStatus (UpdateStatusRequest) returns (PointResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users/refresh"
+            put: "/api/v1/merchants/points/{id}/status"
             body: "*"
          };
     }
 
-    // выход
-    rpc Logout (Empty) returns (EmptyResponse) {
+    // обновление пункта продаж
+    rpc UpdatePoint (Point) returns (PointResponse) {
         option (google.api.http) = {
-            post: "/api/v1/users/logout"
+            put: "/api/v1/merchants/points/{id}"
             body: "*"
          };
     }
 
-    // получение спаска всех групп
-    rpc GetAllGroups (GroupListQueryRequest) returns (GroupsResponse) {
+    // получение ас балковый метод
+    rpc GetBulkMerchants (BulkIdsRequest) returns (MerchantsResponse) {
         option (google.api.http) = {
-            get: "/api/v1/users/groups"
-         };
-    }
-
-    // назначение группы поьзователю
-    rpc AssignGroupToUser (AssignGroupRequest) returns (UserResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/groups/assign"
+            post: "/api/v1/merchants/bulk"
             body: "*"
          };
-    }
-
-    // авторизация
-    rpc Auth (AuthRequest) returns (TokenResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/login"
-            body: "*"
-         };
-    }
-
-    // сброс пароля
-    rpc ResetPassword (ResetRequest) returns (EmptyResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/password/reset"
-            body: "*"
-         };
-    }
-
-    // востановлние пароля
-    rpc RecoverPassword (RecoverRequest) returns (EmptyResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/password/recover"
-            body: "*"
-         };
-    }
-
-    // подтверждение email
-    rpc EmailConfirm (EmailConfirmRequest) returns (EmptyResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/confirm"
-            body: "*"
-         };
-    }
-
-    // создание группы
-    rpc CreateGroup (Group) returns (GroupResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/groups"
-            body: "*"
-         };
-    }
-
-    // обновление группы
-    rpc UpdateGroup (Group) returns (GroupResponse) {
-        option (google.api.http) = {
-            put: "/api/v1/users/groups/{id}"
-            body: "*"
-         };
-    }
-
-    // обновление пользователя
-    rpc UpdateUser (UpdateUserRequest) returns (UserResponse) {
-        option (google.api.http) = {
-            put: "/api/v1/users/{id}"
-            body: "*"
-         };
-    }
-    // обновление активности пользователя
-    rpc UpdateActive (UpdateActiveRequest) returns (UserResponse) {
-        option (google.api.http) = {
-            put: "/api/v1/users/{id}/active"
-            body: "*"
-         };
-    }
-
-    // еденичное получение пользователя
-    rpc GetOneUser (GetUserByIdRequest) returns (UserResponse) {
-        option (google.api.http) = {
-            get: "/api/v1/users/{id}"
-         };
-    }
-
-    // метод получение версии сервиса
-    rpc GetConfirmCode (GetUserByIdRequest) returns (ConfirmResponse) {
-        option (google.api.http) = {
-            get: "/api/v1/users/{id}/confirm"
-         };
-    }
-
-    rpc GetBulkUser (BulkIdsRequest) returns (UsersBulkResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/bulk"
-            body: "*"
-         };
-    }
-
-    // обновление пароля
-    rpc UpdatePassword (UpdatePasswordRequest) returns (EmptyResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/users/{id}/password"
-            body: "*"
-         };
-    }
-
-    // обновление countrypartId
-    rpc UpdateCountrypartId (UpdateCountrypartIdRequest) returns (UserResponse) {
-        option (google.api.http) = {
-            put: "/api/v1/users/{id}/countrypart"
-            body: "*"
-         };
-    }
-
-    rpc ValidateToken (Token) returns (UserResponse) {
     }
 
 }
 
-enum UserTypes {
-    user = 0;
-    merchant = 1;
-    provider = 2;
-    point = 3;
-    admin = 4;
-    noActiveMerchant = 5;
-    noActiveProvider = 6;
-
+enum ProgressStatus {
+    new = 0;
+    pendingVerification = 1;
+    verified = 2;
+    pendingIntegration = 3;
+    integrated = 4;
+    active = 5;
+    inactive = 6;
 }
 
-message UserListSortFields {
+message MerchantListSortFields {
     enum Sort {
         _id = 0;
-        firstName = 1;
-        lastName = 2;
-        secondName = 3;
-        createdAt = 4;
-        updatedAt = 5;
+        Address = 1;
     }
-}
-
-message GroupListSortFields {
-    enum Sort {
-        _id = 0;
-        name = 1;
-    }
-}
-
-// Requests
-message BulkIdsRequest {
-    repeated string ids = 1;
 }
 
 enum SortTypes {
@@ -223,72 +173,233 @@ enum SortTypes {
 message Empty {
 }
 
-message ConfirmResponse {
+message StatusesResponse {
     int32 status = 1;
     string message = 2;
-    ConfirmData data = 3;
+    repeated string data = 3;
+    Pagination pagination = 4;
 }
 
-message ConfirmData {
-    string code = 2;
+message UpdateStatusRequest {
+    string id = 1;
+    oneof statusField {
+        ProgressStatus status = 2;
+    }
+    bool force = 3;
 }
-message GetUserByIdRequest {
+
+message GetByIdRequest {
     string id = 1;
 }
 
-message ResetRequest {
-    string email = 1;
-}
-
-message UpdatePasswordRequest {
+message AssignUserRequest {
     string id = 1;
-    string password = 2;
+    repeated string userIds = 2;
 }
 
-message UpdateCountrypartIdRequest {
+message UnAssignUserRequest {
     string id = 1;
-    string countrypartId = 2;
+    string userId = 2;
 }
 
-message RecoverRequest {
-    string email = 1;
-    string password = 2;
-    string passwordResetCode = 3;
+message MerchantRequest {
+    string name = 1;
+    string description = 2;
+    string logo = 3;
+    string address = 4;
+    string licence = 5;
+    string inn = 6;
 }
 
-message EmailConfirmRequest {
-    string email = 1;
-    string code = 2;
+message UpdateMerchantRequest {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string logo = 4;
+    string licence = 5;
 }
 
-message UserListSortQuery {
-    UserListSortFields.Sort field = 1;
-    SortTypes type = 2;
+enum EventType {
+    userAddLegal = 0;
+    verificationLegal = 1;
+    declineLegal = 2;
+    startIntegration = 3;
+    isIntegrated = 4;
+    isActivated = 5;
+    isInActive = 6;
+    updateStatusForce = 7;
 }
 
-message GroupListSortQuery {
-    GroupListSortFields.Sort field = 1;
-    SortTypes type = 2;
+message UpdateMerchantFullRequest {
+    option (bom.opts) = {model: true};
+
+    string id = 1 [(bom.field).tag = {validator: "required~Id:FIELD_IS_REQUIRED"}];
+
+    string name = 2 [(bom.field).tag = {validator: "required~name:FIELD_IS_REQUIRED"}];
+    string description = 3;
+    string logo = 4;
+    string licence = 5;
+    Address address = 6;
+
+    oneof legalIdField {
+        string legalId = 7;
+    }
+
+    PointsMessage points = 8;
+
+    oneof publishField {
+        bool publish = 14;
+    }
+
+    oneof eventField {
+        EventType event = 15;
+    }
+
+    oneof statusField {
+        ProgressStatus status = 9;
+    }
+
+    repeated Regions regions = 12;
+    int32 pointsCounter = 13;
 }
 
-message UserListQueryRequest {
-    int32 page = 1;
-    int32 size = 2;
-    UserListSortQuery sort = 3;
-    string counterpartyId = 4;
-    string groupId = 5;
+message MerchantLog {
+    option (bom.opts) = {
+         model: true
+         crud: true
+     };
+
+    google.protobuf.Timestamp createdAt = 1;
+    EventType event = 2;
+    string message = 3;
+}
+
+// Аптечная сеть
+message Merchant {
+
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "merchant"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
+
+    oneof publishField {
+        bool publish = 14;
+    }
+
+
+    string name = 2;
+    string description = 3;
+    string logo = 4;
+    string licence = 5;
+    Address address = 6;
+    string legalId = 7 [(bom.field).tag = {mongoObjectId:true}];
+    PointsMessage points = 8;
+
+
+    oneof statusField {
+        ProgressStatus status = 9;
+    }
+
+
+    repeated MerchantLog log = 15;
+
+    google.protobuf.Timestamp createdAt = 10;
+    google.protobuf.Timestamp updatedAt = 11;
+    repeated Regions regions = 12;
+    int32 pointsCounter = 13;
+}
+
+message Regions {
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+     };
+    string name = 1;
+    int32 count = 2;
+}
+
+message PointsMessage {
+    option (bom.opts) = {
+         model: true
+         crud: true
+     };
+    repeated string items = 8 [(bom.field).tag = {mongoObjectId:true}];
+
+}
+
+// Точка продаж
+message Point {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "point"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
+    string inn = 3;
+    string name = 4;
+    string merchantId = 5 [(bom.field).tag = {mongoObjectId:true}];
+    Address address = 6;
+    string legalId = 7 [(bom.field).tag = {mongoObjectId:true}];
+    Ofd ofd = 8;
+    google.protobuf.Timestamp createdAt = 9;
+    google.protobuf.Timestamp updatedAt = 10;
+    ProgressStatus status = 11;
+    string licence = 12;
+
+}
+
+message Ofd {
+    option (bom.opts) = {
+         model: true
+         crud: true
+     };
+    string type = 1;
+    string credentials = 2;
+}
+
+// связь аптечной сети и пользователя
+message MerchantUsers {
+
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "merchant_users"
+     };
+
+    string merchantId = 1 [(bom.field).tag = {mongoObjectId:true}];
+    string userId = 2 [(bom.field).tag = {mongoObjectId:true}];
     oneof activeField {
-        bool active = 6;
-    }
-    oneof typeField {
-        UserTypes type = 7;
+        bool active = 3;
     }
 }
 
-message GroupListQueryRequest {
-    int32 page = 1;
-    int32 size = 2;
-    GroupListSortQuery sort = 3;
+// адрес
+message Address {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+     };
+    string value = 1;
+    string country = 2; // страна
+    int32 postalCode = 3; // индекс
+    string region = 4; // регион
+    string city = 5; // город
+    string street = 6; // улица
+    string house = 7; // дом
+    string block = 8; // строение/дробь
+    string flat = 9; // квартира (если есть)
+    string regionWithType = 10;
+    string geoLat = 11;
+    string geoLon = 12;
+
 }
 
 message Pagination {
@@ -298,209 +409,89 @@ message Pagination {
     int32 size = 4;
 }
 
+message MerchantResponse {
+    int32 status = 1;
+    string message = 2;
+    Merchant data = 3;
+}
+
+message MerchantsResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Merchant data = 3;
+    Pagination pagination = 4;
+}
+
+message MerchantUsersResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated MerchantUsers data = 3;
+}
+
+message MerchantListSortQuery {
+    MerchantListSortFields.Sort field = 1;
+    SortTypes type = 2;
+}
+
+message ListQueryRequest {
+    int32 page = 1;
+    int32 size = 2;
+    string name = 3;
+    MerchantListSortQuery sort = 4;
+    string id = 5;
+    string pointsNumberFrom = 6;
+    string pointsNumberTo = 7;
+    string regionName = 8;
+    oneof statusField {
+        ProgressStatus status = 9;
+    }
+    oneof publishField {
+        bool publish = 14;
+    }
+
+}
+
 message EmptyResponse {
     int32 status = 1;
     string message = 2;
 }
 
-message UsersBulkResponse {
-    int32 status = 1;
-    string message = 2;
-    repeated User data = 3;
+message PointRequest {
+    string id = 1;
+    string inn = 2;
+    string name = 3;
+    string address = 4;
 }
 
-message UsersResponse {
+message PointResponse {
     int32 status = 1;
     string message = 2;
-    repeated User data = 3;
+    Point data = 3;
+}
+
+message PointsResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Point data = 3;
     Pagination pagination = 4;
 }
 
-message UserResponse {
+message PointsResponseGrouped {
     int32 status = 1;
     string message = 2;
-    User data = 3;
-}
-
-message RefreshTokenRequest {
-    string refreshToken = 1;
-}
-
-message VersionResponse {
-    int32 status = 1;
-    string version = 2;
-}
-
-message TokenResponse {
-    int32 status = 1;
-    string message = 2;
-    Token data = 3;
-}
-
-message Service {
-    enum ServiceName {
-        _ = 0;
-        bank = 1;
-        user = 2;
-        provider = 3;
-        merchant = 4;
-        contract = 5;
-        products = 6;
-        reciept = 8;
-        storage = 9;
-        spider = 10;
-        cashier = 11;
-        notification = 12;
-        settings = 13;
-        analytics = 14;
-        progress = 15;
-    }
-    ServiceName name = 1;
-}
-
-message ServicesResponse {
-    int32 status = 1;
-    string message = 2;
-    repeated Service data = 3;
-}
-
-message GroupResponse {
-    int32 status = 1;
-    string message = 2;
-    Group data = 3;
-}
-
-message GroupsResponse {
-    int32 status = 1;
-    string message = 2;
-    repeated Group data = 3;
+    repeated RegionWithPoints data = 5;
     Pagination pagination = 4;
 }
 
-message AuthRequest {
-    string email = 1;
-    string password = 2;
+message RegionWithPoints {
+    string name = 1;
+    repeated Point points = 2;
 }
 
-message AssignGroupRequest {
-    repeated string groups = 1;
-    repeated string groupNames = 2;
-    string userId = 3;
+message Points {
+    repeated Point points = 1;
 }
 
-message UpdateUserRequest {
-    string id = 1;
-
-    oneof activeField {
-        bool active = 2;
-    }
-
-    UserTypes type = 3;
-    string firstName = 4;
-    string lastName = 5;
-    string secondName = 6;
-    string phone = 7;
-    string company = 8;
-    oneof legalIdField {
-        string legalId = 9;
-    }
-}
-
-message UpdateActiveRequest {
-    option (bom.opts) = {
-         model: true
-     };
-
-    string id = 1;
-    bool active = 2  [(bom.field).tag = {validator: "email"}];
-}
-
-message UserRequest {
-    oneof activeField {
-        bool active = 1;
-    }
-    UserTypes type = 2;
-    string firstName = 3;
-    string lastName = 4;
-    string secondName = 5;
-    string phone = 6;
-    string company = 7;
-    string email = 8;
-    string password = 9;
-}
-
-message Group {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "group"
-     };
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
-    string name = 2;
-    map<string, Permission> permissions = 3;
-}
-
-message Permission {
-    option (bom.opts) = {
-         model: true
-     };
-
-    bool create = 2;
-    bool read = 3;
-    bool update = 4;
-    bool delete = 5;
-}
-
-message UserGroup {
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-     };
-
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
-    string name = 2;
-}
-
-message User {
-
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-     };
-
-    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
-    bool active = 2;
-    string firstName = 3;
-    string lastName = 4;
-    string secondName = 5;
-    string phone = 6;
-    string company = 7;
-    repeated UserGroup groups = 8;
-    bool emailConfirm = 9;
-    map<string, Permission> permissions = 10;
-    string email = 11;
-    UserTypes type = 12;
-    google.protobuf.Timestamp createdAt = 13;
-    google.protobuf.Timestamp updatedAt = 14;
-    string counterparty = 15;
-    string legalId = 16 [(bom.field).tag = {mongoObjectId:true}];
-}
-
-message Token {
-
-    // определяем сообщение как модель
-    option (bom.opts) = {
-         model: true
-         crud: true // нужны методы для переопределения
-         collection: "token"
-     };
-
-    string userId = 2 [(bom.field).tag = {mongoObjectId:true}];
-    string accessToken = 3;
-    string refreshToken = 4;
+message BulkIdsRequest {
+    repeated string ids = 1;
 }
