@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package user;
+package main;
 
 import "github.com/cjp2600/protoc-gen-bom/plugin/options/bom.proto";
 import "google/protobuf/timestamp.proto";
@@ -390,9 +390,11 @@ message AssignGroupRequest {
 
 message UpdateUserRequest {
     string id = 1;
+
     oneof activeField {
         bool active = 2;
     }
+
     UserTypes type = 3;
     string firstName = 4;
     string lastName = 5;
@@ -405,6 +407,10 @@ message UpdateUserRequest {
 }
 
 message UpdateActiveRequest {
+    option (bom.opts) = {
+         model: true
+     };
+
     string id = 1;
     bool active = 2  [(bom.field).tag = {validator: "email"}];
 }

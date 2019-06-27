@@ -83,6 +83,9 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 		if bomMessage, ok := p.getMessageOptions(msg); ok {
 			if bomMessage.GetModel() {
 
+				p.GenerateToPB(msg)
+				p.GenerateToObject(msg)
+				p.GenerateObjectId(msg)
 				// todo: доделать генерацию конвертации в связанную модель
 				//p.GenerateBoundMessage(msg)
 
@@ -104,14 +107,11 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateOrWhereMethod(msg)
 				}
 
+				// генерируем основные методы модели
+				p.generateModelsStructures(msg)
+				p.generateValidationMethods(msg)
 			}
 		}
-		// генерируем основные методы модели
-		p.GenerateToPB(msg)
-		p.GenerateToObject(msg)
-		p.GenerateObjectId(msg)
-		p.generateModelsStructures(msg)
-		p.generateValidationMethods(msg)
 	}
 }
 
@@ -1534,7 +1534,7 @@ func (p *MongoPlugin) GenerateToObject(message *generator.Descriptor) {
 	}
 
 	bomMessage, ok := p.getMessageOptions(message)
-	if ok {
+	if ok && bomMessage.GetCrud() {
 		collection := strings.ToLower(message.GetName())
 		if clt := bomMessage.GetCollection(); len(clt) > 0 {
 			collection = clt

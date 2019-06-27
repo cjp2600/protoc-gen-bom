@@ -10,20 +10,12 @@
   version = "v9"
 
 [[projects]]
-  digest = "1:218dc29f5602e3dec88f610d763ecfc968e0d48426b48cfbc6a448568c73f2e4"
+  digest = "1:6764470e083168c27a0a9161905f718ae454a89881bf9784ecbeda4da953c39c"
   name = "github.com/cjp2600/bom"
   packages = ["."]
   pruneopts = "UT"
-  revision = "cc9a14153dcee7ed46657e07eabc8c8e6e1e9470"
-  version = "v1.0.11"
-
-[[projects]]
-  digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
-  name = "github.com/ghodss/yaml"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
-  version = "v1.0.0"
+  revision = "41865a238f5f0bfb871b534e74d000777022131a"
+  version = "v1.0.12"
 
 [[projects]]
   digest = "1:586ea76dbd0374d6fb649a91d70d652b7fe0ccffb8910a77468e7702e7901f3d"
@@ -68,26 +60,14 @@
   version = "v1.2.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:1ba1d79f2810270045c328ae5d674321db34e3aae468eb4233883b473c5c0467"
-  name = "github.com/golang/glog"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
-
-[[projects]]
-  digest = "1:572c09708ea608b9166576fdb18766d7da420c20e64dccd5a5a6a0e0f5de2371"
+  digest = "1:64c2b533ffd17023738c534548ab2455d7f519bc15ed4225145425ed2222448b"
   name = "github.com/golang/protobuf"
   packages = [
-    "descriptor",
-    "jsonpb",
     "proto",
     "protoc-gen-go/descriptor",
-    "protoc-gen-go/generator",
-    "protoc-gen-go/generator/internal/remap",
-    "protoc-gen-go/plugin",
+    "ptypes",
     "ptypes/any",
-    "ptypes/struct",
+    "ptypes/duration",
     "ptypes/timestamp",
   ]
   pruneopts = "UT"
@@ -101,24 +81,6 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "2a8bb927dd31d8daada140a5d09578521ce5c36a"
-
-[[projects]]
-  digest = "1:619f79f1b32a56057384393ea6edc5f5333d1418288f57898951bbbec724b179"
-  name = "github.com/grpc-ecosystem/grpc-gateway"
-  packages = [
-    "codegenerator",
-    "internal",
-    "protoc-gen-grpc-gateway/descriptor",
-    "protoc-gen-grpc-gateway/generator",
-    "protoc-gen-grpc-gateway/httprule",
-    "protoc-gen-swagger",
-    "protoc-gen-swagger/genswagger",
-    "protoc-gen-swagger/options",
-    "utilities",
-  ]
-  pruneopts = "UT"
-  revision = "8fd5fd9d19ce68183a6b0934519dfe7fe6269612"
-  version = "v1.9.0"
 
 [[projects]]
   branch = "master"
@@ -137,7 +99,7 @@
   revision = "73f8eece6fdcd902c185bf651de50f3828bed5ed"
 
 [[projects]]
-  digest = "1:112e3db181969c7bde733364b757bebf0d1a39b4fc1076efab6ff478e4259775"
+  digest = "1:6274d7d09c6836ab5deba524155f29c77ce0ae86e853cd6fc3a51147465f8c8f"
   name = "go.mongodb.org/mongo-driver"
   packages = [
     "bson",
@@ -172,8 +134,8 @@
     "x/network/wiremessage",
   ]
   pruneopts = "UT"
-  revision = "be02c9f9ce6b45d6e845492277a232afd6956cc3"
-  version = "v1.0.2"
+  revision = "582ff343271e8893d785ff094855498c285bce0a"
+  version = "v1.0.3"
 
 [[projects]]
   branch = "master"
@@ -181,7 +143,7 @@
   name = "golang.org/x/crypto"
   packages = ["pbkdf2"]
   pruneopts = "UT"
-  revision = "20be4c3c3ed52bfccdb2d59a412ee1a936d175a7"
+  revision = "cc06ce4a13d484c0101a9e92913248488a75786d"
 
 [[projects]]
   branch = "master"
@@ -212,15 +174,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/api/annotations"]
   pruneopts = "UT"
-  revision = "fb225487d10142b5bcc35abfc6cb9a0609614976"
-
-[[projects]]
-  digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
-  name = "gopkg.in/yaml.v2"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
-  version = "v2.2.2"
+  revision = "989357319d63150615221e52d4addd4b7933fd91"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -234,8 +188,9 @@
     "github.com/gogo/protobuf/protoc-gen-gogo/generator",
     "github.com/gogo/protobuf/vanity/command",
     "github.com/golang/protobuf/proto",
+    "github.com/golang/protobuf/ptypes",
     "github.com/golang/protobuf/ptypes/timestamp",
-    "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger",
+    "go.mongodb.org/mongo-driver/bson/primitive",
     "go.mongodb.org/mongo-driver/mongo",
     "go.mongodb.org/mongo-driver/mongo/options",
     "go.mongodb.org/mongo-driver/mongo/readpref",
