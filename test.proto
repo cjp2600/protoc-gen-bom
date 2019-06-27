@@ -242,7 +242,7 @@ message UpdateMerchantFullRequest {
     Address address = 6;
 
     oneof legalIdField {
-        string legalId = 7;
+        string legalId = 7 [(bom.field).tag = {mongoObjectId:true}];
     }
 
     PointsMessage points = 8;

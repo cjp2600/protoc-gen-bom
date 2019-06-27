@@ -1190,6 +1190,10 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 			continue
 		}
 
+		if oneOf && bomField != nil && bomField.Tag.GetMongoObjectId() {
+			goTyp = "primitive.ObjectID"
+		}
+
 		if oneOf {
 			p.useUnsafe = true
 
@@ -1386,10 +1390,22 @@ func (p *MongoPlugin) fieldsToPBStructure(field *descriptor.FieldDescriptorProto
 
 		if oneof {
 
-			// if one of click
-			sourceName := p.GetFieldName(message, field)
-			interfaceName := p.Generator.OneOfTypeName(message, field)
-			p.P(`resp.`, sourceName, ` = &`, interfaceName, `{e.Get`, fieldName, `()}`)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+
+				sourceName := p.GetFieldName(message, field)
+				interfaceName := p.Generator.OneOfTypeName(message, field)
+
+				p.P(`objectValue := e.Get`, fieldName, `()`)
+				p.P(`if !objectValue.IsZero() {`)
+				p.P(`resp.`, sourceName, ` = &`, interfaceName, `{objectValue.Hex()}`)
+				p.P(`}`)
+
+			} else {
+				// if one of click
+				sourceName := p.GetFieldName(message, field)
+				interfaceName := p.Generator.OneOfTypeName(message, field)
+				p.P(`resp.`, sourceName, ` = &`, interfaceName, `{e.Get`, fieldName, `()}`)
+			}
 
 		} else if bomField != nil && bomField.Tag.GetMongoObjectId() {
 			repeated := field.IsRepeated()
@@ -1434,9 +1450,8 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 		keygoTyp = strings.Replace(keygoTyp, "*", "", 1)
 		keygoAliasTyp, _ := p.GoType(nil, keyAliasField)
 		keygoAliasTyp = strings.Replace(keygoAliasTyp, "*", "", 1)
-		//keyCapTyp := generator.CamelCase(keygoTyp)
-		p.P(`tt`, fieldName, ` := make(`, m.GoType, `)`)
 
+		p.P(`tt`, fieldName, ` := make(`, m.GoType, `)`)
 		p.P(`for k, v := range e.`, fieldName, ` {`)
 		p.In()
 		if ism {
@@ -1509,9 +1524,22 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 			p.P(`resp.`, fieldName, ` = bom.ToObjects(e.`, fieldName, `)`)
 			p.P(`}`)
 		} else {
-			p.P(`if len(e.`, fieldName, `) > 0 {`)
-			p.P(`resp.`, fieldName, ` = bom.ToObj(e.`, fieldName, `)`)
-			p.P(`}`)
+			if oneof {
+				// if one of click
+				sourceName := p.GetFieldName(message, field)
+				p.P(`// oneof link`)
+				p.P(`if e.Get`, sourceName, `() != nil {`)
+				p.P(`link`, fieldName, ` := bom.ToObj(e.Get`, fieldName, `())`)
+				p.P(`resp.`, fieldName, ` = &link`, fieldName, ``)
+				p.P(`}`)
+				p.P(``)
+
+			} else {
+				p.P(`if len(e.`, fieldName, `) > 0 {`)
+				p.P(`resp.`, fieldName, ` = bom.ToObj(e.`, fieldName, `)`)
+				p.P(`}`)
+			}
+
 		}
 
 	} else {
