@@ -10,12 +10,12 @@
   version = "v9"
 
 [[projects]]
-  digest = "1:6764470e083168c27a0a9161905f718ae454a89881bf9784ecbeda4da953c39c"
+  digest = "1:459bcb4c2fdcdb6607a990c5acb1eb4ba03413bf4af05a772ec81bfbae31d8cb"
   name = "github.com/cjp2600/bom"
   packages = ["."]
   pruneopts = "UT"
-  revision = "41865a238f5f0bfb871b534e74d000777022131a"
-  version = "v1.0.12"
+  revision = "a0e4b8ae5401b98cc58edf5b8706f923d6765269"
+  version = "v1.0.13"
 
 [[projects]]
   digest = "1:586ea76dbd0374d6fb649a91d70d652b7fe0ccffb8910a77468e7702e7901f3d"
@@ -174,7 +174,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/api/annotations"]
   pruneopts = "UT"
-  revision = "989357319d63150615221e52d4addd4b7933fd91"
+  revision = "eb59cef1c072c61ea4f7623910448d5e9c6a4455"
 
 [solve-meta]
   analyzer-name = "dep"

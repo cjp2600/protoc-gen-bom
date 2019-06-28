@@ -696,6 +696,22 @@ message RequestEventLog {
     string message = 2; // описание события
 }
 
+message ActRequest {
+    option (bom.opts) = {
+         model: true
+         convertTo: "Act"
+    };
+
+    int32 amount = 1;
+    string publicId = 2;
+    int32 onlyDB = 3;
+}
+
+message PrivateAct {
+    option (bom.opts) = { model: true };
+    int32 onlyDB = 3;
+}
+
 // описание сущности актов
 message Act {
 
@@ -703,6 +719,7 @@ message Act {
     option (bom.opts) = {
          model: true
          crud: true // нужны методы для переопределения
+         merge: "PrivateAct"
      };
 
     string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id

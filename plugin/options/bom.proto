@@ -26,6 +26,8 @@ message BomMessageOptions {
   optional string table = 3;
   optional string collection = 4;
   optional string boundMessage = 5;
+  optional string merge = 6;
+  optional string convertTo = 7;
 }
 
 // Field level specifications

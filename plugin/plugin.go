@@ -21,6 +21,10 @@ type MongoPlugin struct {
 	currentFile    *generator.FileDescriptor
 	generateCrud   bool
 
+	PrivateEntities map[string]PrivateEntity
+	ConvertEntities map[string]ConvertEntity
+	Fields          map[string][]*descriptor.FieldDescriptorProto
+
 	usePrimitive bool
 	useTime      bool
 	useStrconv   bool
@@ -28,6 +32,18 @@ type MongoPlugin struct {
 	useCrud      bool
 	useUnsafe    bool
 	localName    string
+}
+
+type ConvertEntity struct {
+	nameFrom string
+	nameTo   string
+	message  *generator.Descriptor
+}
+
+type PrivateEntity struct {
+	name    string
+	items   []*descriptor.FieldDescriptorProto
+	message *generator.Descriptor
 }
 
 var ServiceName string
@@ -73,21 +89,42 @@ func (p *MongoPlugin) GenerateName(name string) string {
 }
 
 func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
+	p.PrivateEntities = make(map[string]PrivateEntity)
+	p.ConvertEntities = make(map[string]ConvertEntity)
+	p.Fields = make(map[string][]*descriptor.FieldDescriptorProto)
+
 	p.PluginImports = generator.NewPluginImports(p.Generator)
 	p.localName = generator.FileName(file)
 	ServiceName = p.GetServiceName(file)
 
 	p.usePrimitive = false
 	p.GenerateBomObject()
+
+	for _, msg := range file.Messages() {
+		name := strings.Trim(p.GenerateName(msg.GetName()), " ")
+		p.Fields[name] = msg.GetField()
+		if val, ok := p.PrivateEntities[name]; ok {
+			val.items = msg.GetField()
+			p.PrivateEntities[name] = val
+		}
+	}
+
 	for _, msg := range file.Messages() {
 		if bomMessage, ok := p.getMessageOptions(msg); ok {
 			if bomMessage.GetModel() {
+				name := p.GenerateName(msg.GetName())
+
+				p.setCovertEntities(msg, name)
 
 				p.GenerateToPB(msg)
 				p.GenerateToObject(msg)
 				p.GenerateObjectId(msg)
 				// todo: доделать генерацию конвертации в связанную модель
 				//p.GenerateBoundMessage(msg)
+
+				// генерируем основные методы модели
+				p.generateModelsStructures(msg)
+				p.generateValidationMethods(msg)
 
 				// добавляем круд
 				if bomMessage.GetCrud() {
@@ -97,7 +134,6 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateContructor(msg)
 					p.GenerateInsertMethod(msg)
 					p.GenerateFindOneMethod(msg)
-					p.GenerateUpdateOneMethod(msg)
 					p.GenerateUpdateAllMethod(msg)
 					p.GerateWhereId(msg)
 					p.GenerateFindMethod(msg)
@@ -105,11 +141,30 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateWhereMethod(msg)
 					p.GenerateWhereInMethod(msg)
 					p.GenerateOrWhereMethod(msg)
+					p.GenerateUpdateOneMethod(msg)
 				}
 
-				// генерируем основные методы модели
-				p.generateModelsStructures(msg)
-				p.generateValidationMethods(msg)
+			}
+		}
+	}
+	// generate merge and covert methods
+	p.generateEntitiesMethods()
+}
+
+func (w *MongoPlugin) setCovertEntities(message *generator.Descriptor, name string) {
+	opt, ok := w.getMessageOptions(message)
+	if ok {
+		if entity := opt.GetConvertTo(); len(entity) > 0 {
+			st := strings.Split(entity, ",")
+			if len(st) > 0 {
+				for _, str := range st {
+					nameTo := strings.Trim(w.GenerateName(str), " ")
+					w.ConvertEntities[nameTo] = ConvertEntity{
+						nameFrom: name,
+						nameTo:   nameTo,
+						message:  message,
+					}
+				}
 			}
 		}
 	}
@@ -601,6 +656,15 @@ func (p *MongoPlugin) GenerateOrWhereMethod(message *generator.Descriptor) {
 	p.P(` e.bom.OrWhereEq(field, value)`)
 	p.P(` return e`)
 	p.P(`}`)
+	p.P(`// WhereNotEq`)
+	p.P(`func (e *`, gName, `) WhereNotEq(field string, value interface{}) *`, gName, ` {`)
+	p.P(`// check if bom object is nil`)
+	p.P(`if e.bom == nil {`)
+	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
+	p.P(`}`)
+	p.P(` e.bom.WhereNotEq(field, value)`)
+	p.P(` return e`)
+	p.P(`}`)
 	p.P(`// OrWhereEq method`)
 	p.P(`func (e *`, gName, `) OrWhereEq(field string, value interface{}) *`, gName, ` {`)
 	p.P(`// check if bom object is nil`)
@@ -674,7 +738,24 @@ func (p *MongoPlugin) GenerateFindMethod(message *generator.Descriptor) {
 //GenerateFindOneMethod
 func (p *MongoPlugin) GenerateFindOneMethod(message *generator.Descriptor) {
 
-	for _, field := range message.GetField() {
+	fields := message.GetField()
+	opt, ok := p.getMessageOptions(message)
+	if ok {
+		if table := opt.GetMerge(); len(table) > 0 {
+			st := strings.Split(table, ",")
+			if len(st) > 0 {
+				for _, str := range st {
+					if val, ok := p.Fields[p.GenerateName(str)]; ok {
+						for _, f1 := range val {
+							fields = append(fields, f1)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for _, field := range fields {
 
 		//nullable := gogoproto.IsNullable(field)
 		repeated := field.IsRepeated()
@@ -729,8 +810,26 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
 			useWhereId = true
 		}
 	}
+	mName := p.GenerateName(message.GetName())
 
-	for _, field := range message.GetField() {
+	fields := message.GetField()
+	opt, ok := p.getMessageOptions(message)
+	if ok {
+		if table := opt.GetMerge(); len(table) > 0 {
+			st := strings.Split(table, ",")
+			if len(st) > 0 {
+				for _, str := range st {
+					if val, ok := p.Fields[p.GenerateName(str)]; ok {
+						for _, f1 := range val {
+							fields = append(fields, f1)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for _, field := range fields {
 		fieldName := field.GetName()
 		if strings.ToLower(fieldName) == "id" {
 			continue
@@ -739,7 +838,6 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
 
 		goTyp, _ := p.GoType(message, field)
 		fieldName = generator.CamelCase(fieldName)
-		mName := p.GenerateName(message.GetName())
 
 		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
 			goTyp = "time.Time"
@@ -913,7 +1011,24 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *generator.Descriptor) {
 	p.P(`var flatFields []primitive.E`)
 	p.P(`var upResult primitive.D`)
 
-	for _, field := range message.GetField() {
+	fields := message.GetField()
+	opt, ok := p.getMessageOptions(message)
+	if ok {
+		if table := opt.GetMerge(); len(table) > 0 {
+			st := strings.Split(table, ",")
+			if len(st) > 0 {
+				for _, str := range st {
+					if val, ok := p.Fields[p.GenerateName(str)]; ok {
+						for _, f1 := range val {
+							fields = append(fields, f1)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for _, field := range fields {
 		fieldName := field.GetName()
 
 		if strings.ToLower(fieldName) == "id" {
@@ -1169,6 +1284,19 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 	p.P(`// create MongoDB Model from protobuf (`, p.GenerateName(message.GetName()), `)`)
 	p.P(`type `, p.GenerateName(message.GetName()), ` struct {`)
 
+	opt, ok := p.getMessageOptions(message)
+	if ok {
+		if table := opt.GetMerge(); len(table) > 0 {
+			st := strings.Split(table, ",")
+			if len(st) > 0 {
+				for _, str := range st {
+					p.P(p.GenerateName(str))
+					p.PrivateEntities[strings.Trim(p.GenerateName(str), " ")] = PrivateEntity{name: p.GenerateName(message.GetName()), message: message}
+				}
+			}
+		}
+	}
+
 	type useUnsafeMethod struct {
 		fieldName string
 		goTyp     string
@@ -1255,9 +1383,7 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 			p.P(fieldName, ` `, goTyp, tagString)
 		}
 	}
-	if p.useCrud {
-		p.P(`bom  *bom.Bom`)
-	}
+	p.P(`bom  *bom.Bom`)
 	p.P(`}`)
 	p.Out()
 	p.P(``)
@@ -1606,4 +1732,61 @@ func (p *MongoPlugin) renderType(message string) string {
 // Name identifies the plugin
 func (p *MongoPlugin) Name() string {
 	return "bom"
+}
+
+func (w *MongoPlugin) generateEntitiesMethods() {
+	if len(w.PrivateEntities) > 0 {
+		for key, value := range w.PrivateEntities {
+			w.P(``)
+			w.P(`// Merge - merge private structure (`, value.name, `)`)
+			w.P(`func (e *`, value.name, `) Merge`, strings.Trim(key, " "), ` (m *`, key, `) *`, value.name, ` {`)
+
+			for _, field := range value.items {
+				fieldName := field.GetName()
+				fieldName = generator.CamelCase(fieldName)
+				w.P(`e.`, fieldName, ` = m.`, fieldName)
+			}
+
+			w.P(`return e`)
+			w.P(`}`)
+			w.Out()
+			w.P(``)
+		}
+	}
+	if len(w.ConvertEntities) > 0 {
+		for _, value := range w.ConvertEntities {
+			w.P(``)
+			w.P(`// To`, strings.Trim(value.nameTo, " "), ` - convert structure (`, value.nameFrom, ` -> `, value.nameTo, `)`)
+			w.P(`func (e *`, value.nameFrom, `) To`, strings.Trim(value.nameTo, " "), ` () *`, value.nameTo, ` {`)
+			w.P(`var entity `, value.nameTo)
+			if fieldsFrom, ok := w.Fields[value.nameFrom]; ok {
+				if fieldsTo, ok := w.Fields[value.nameTo]; ok {
+					for _, field := range fieldsFrom {
+						for _, f := range fieldsTo {
+							if field.GetName() == f.GetName() {
+								fieldName := field.GetName()
+								fieldName = generator.CamelCase(fieldName)
+								w.P(`entity.`, fieldName, ` = e.`, fieldName)
+							}
+						}
+					}
+				}
+			}
+			for private, pe := range w.PrivateEntities {
+				if pe.name == value.nameTo {
+					if fields, ok := w.Fields[private]; ok {
+						for _, f2 := range fields {
+							fieldName := f2.GetName()
+							fieldName = generator.CamelCase(fieldName)
+							w.P(`entity.`, fieldName, ` = e.`, fieldName)
+						}
+					}
+				}
+			}
+			w.P(`return &entity`)
+			w.P(`}`)
+			w.Out()
+			w.P(``)
+		}
+	}
 }
