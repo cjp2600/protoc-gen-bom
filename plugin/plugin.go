@@ -1306,6 +1306,7 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 	var nsafeScope []useUnsafeMethod
 
 	for _, field := range message.GetField() {
+		var tagString string
 		fieldName := field.GetName()
 		oneOf := field.OneofIndex != nil
 
@@ -1335,15 +1336,17 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 			})
 		}
 
-		var tagString string
+		tagString = "`"
+		tagString = tagString + `json:"` + strings.ToLower(fieldName) + `"`
+
 		if bomField != nil && bomField.Tag != nil {
-			tagString = " `"
 			validTag := bomField.Tag.GetValidator()
 			if len(validTag) > 0 {
+				tagString = tagString + " "
 				tagString = tagString + `valid:"` + validTag + `"`
 			}
-			tagString = tagString + "`"
 		}
+		tagString = tagString + "`"
 
 		if oneOf {
 			if strings.ToLower(goTyp) == "*timestamp.timestamp" {
@@ -1356,9 +1359,9 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 
 			repeated := field.IsRepeated()
 			if repeated {
-				p.P(fieldName, ` `, `[]primitive.ObjectID`)
+				p.P(fieldName, ` `, `[]primitive.ObjectID`, tagString)
 			} else {
-				idName := ""
+				idName := tagString
 				if bomField.Tag.GetIsID() {
 					idName = "`_id, omitempty`"
 				}
