@@ -696,6 +696,16 @@ message RequestEventLog {
     string message = 2; // описание события
 }
 
+message ActUpdateRequest {
+    option (bom.opts) = {
+         model: true
+         convertTo: "Act"
+    };
+
+    int32 amount = 1;
+    string publicId = 2;
+}
+
 message ActRequest {
     option (bom.opts) = {
          model: true

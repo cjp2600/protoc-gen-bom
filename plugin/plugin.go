@@ -159,7 +159,7 @@ func (w *MongoPlugin) setCovertEntities(message *generator.Descriptor, name stri
 			if len(st) > 0 {
 				for _, str := range st {
 					nameTo := strings.Trim(w.GenerateName(str), " ")
-					w.ConvertEntities[nameTo] = ConvertEntity{
+					w.ConvertEntities[name+":"+nameTo] = ConvertEntity{
 						nameFrom: name,
 						nameTo:   nameTo,
 						message:  message,

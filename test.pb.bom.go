@@ -4622,6 +4622,37 @@ func (e *RequestEventLogMongo) IsValid() error {
 	return nil
 }
 
+func (e *ActUpdateRequestMongo) ToPB() *ActUpdateRequest {
+	var resp ActUpdateRequest
+	resp.Amount = e.Amount
+	resp.PublicId = e.PublicId
+	return &resp
+}
+
+// ToMongo runs the BeforeToMongo hook if present, converts the fields of this
+// object to Mongo format, runs the AfterToMongo hook, then returns the Mongo object
+func (e *ActUpdateRequest) ToMongo() *ActUpdateRequestMongo {
+	var resp ActUpdateRequestMongo
+	resp.Amount = e.Amount
+	resp.PublicId = e.PublicId
+	return &resp
+}
+
+// create MongoDB Model from protobuf (ActUpdateRequestMongo)
+type ActUpdateRequestMongo struct {
+	Amount   int32  `json:"amount"`
+	PublicId string `json:"publicid"`
+	bom      *bom.Bom
+}
+
+// isValid - validation method of the described protobuf structure
+func (e *ActUpdateRequestMongo) IsValid() error {
+	if _, err := valid.ValidateStruct(e); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (e *ActRequestMongo) ToPB() *ActRequest {
 	var resp ActRequest
 	resp.Amount = e.Amount
@@ -6400,6 +6431,15 @@ func (e *SaleOfChecksPayloadMongo) UpdateUpdatedAt(UpdatedAt time.Time, updateAt
 // Merge - merge private structure (ActMongo)
 func (e *ActMongo) MergePrivateActMongo(m *PrivateActMongo) *ActMongo {
 	return e
+}
+
+// ToActMongo - convert structure (ActUpdateRequestMongo -> ActMongo)
+func (e *ActUpdateRequestMongo) ToActMongo() *ActMongo {
+	var entity ActMongo
+	entity.Amount = e.Amount
+	entity.PublicId = e.PublicId
+	entity.OnlyDB = e.OnlyDB
+	return &entity
 }
 
 // ToActMongo - convert structure (ActRequestMongo -> ActMongo)
