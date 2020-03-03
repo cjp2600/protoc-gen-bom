@@ -1614,9 +1614,13 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 				p.P(``)
 
 			} else {
-				p.P(`// create time object`)
+
+				p.P(`// check if it's not a zero date and create time object`)
+				p.P(`if e.`, fieldName, `.GetSeconds() > 0 && e.`, fieldName, `.GetNanos() > 0 {`)
 				p.P(`ut`, fieldName, ` := time.Unix(e.`, fieldName, `.GetSeconds(), int64(e.`, fieldName, `.GetNanos()))`)
 				p.P(`resp.`, fieldName, ` = ut`, fieldName)
+				p.P(`}`)
+
 			}
 
 		} else if field.IsMessage() {

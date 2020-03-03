@@ -1,0 +1,274 @@
+syntax = "proto3";
+
+package main;
+
+import "github.com/cjp2600/protoc-gen-bom/plugin/options/bom.proto";
+import "google/protobuf/timestamp.proto";
+import "github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis/google/api/annotations.proto";
+
+// Сервис провайдеров
+service ProviderService {
+
+    rpc ProvidersList (ProviderListQueryRequest) returns (ProvidersResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/providers"
+         };
+    }
+
+    rpc CreateProvider (Provider) returns (ProviderResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/providers"
+            body: "*"
+         };
+    }
+
+    rpc Version (Empty) returns (VersionResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/providers/version"
+         };
+    }
+
+    rpc GetCurrentProvider (EmptyRequest) returns (ProviderResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/providers/current"
+         };
+    }
+
+    rpc GetBulkProvider (BulkIdsRequest) returns (ProvidersResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/providers/bulk"
+            body: "*"
+         };
+    }
+
+    rpc GetOneProvider (GetByIdRequest) returns (ProviderResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/providers/{id}"
+         };
+    }
+
+    rpc DeleteProvider (DeleteProviderRequest) returns (RemoveResponse) {
+        option (google.api.http) = {
+            delete: "/api/v1/providers/{id}"
+         };
+    }
+
+    rpc DeleteOneProvider (GetByIdRequest) returns (ProviderResponse) {
+        option (google.api.http) = {
+            delete: "/api/v1/providers/{id}"
+         };
+    }
+
+    rpc AssignUser (AssignUserRequest) returns (ProviderUsersResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/providers/{id}/users"
+            body: "*"
+         };
+    }
+
+    rpc DeleteUser (DeleteAssignUserRequest) returns (RemoveResponse) {
+        option (google.api.http) = {
+            delete: "/api/v1/providers/{id}/users/{userId}"
+         };
+    }
+
+    rpc GetAllManufactures (ProviderListQueryRequest) returns (ManufacturesResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/manufactures"
+         };
+    }
+
+    rpc CreateManufacture (Manufacture) returns (ManufactureResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/manufactures"
+            body: "*"
+         };
+    }
+
+    rpc DeleteManufacture (GetByIdRequest) returns (EmptyResponse) {
+        option (google.api.http) = {
+            delete: "/api/v1/manufactures/{id}"
+         };
+    }
+
+    rpc UpdateProvider (Provider) returns (ProviderResponse) {
+        option (google.api.http) = {
+            put: "/api/v1/providers/{id}"
+            body: "*"
+         };
+    }
+
+}
+
+// Requests
+message BulkIdsRequest {
+    repeated string ids = 1;
+}
+
+message GetByIdRequest {
+    string id = 1;
+}
+
+message EmptyRequest {
+}
+
+message AssignUserRequest {
+    string id = 1;
+    repeated string userIds = 2;
+}
+
+message EmptyResponse {
+    int32 status = 1;
+    string message = 2;
+}
+
+message VersionResponse {
+    int32 status = 1;
+    string version = 2;
+}
+
+message DeleteAssignUserRequest {
+    string id = 1;
+    string userId = 2;
+}
+
+message DeleteProviderRequest {
+    string id = 1;
+}
+
+message ProviderRequest {
+    string name = 2;
+    string description = 3;
+    string logo = 4;
+    repeated Warehouse warehouses = 5;
+}
+
+message Empty {
+}
+
+message Warehouse {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+     };
+
+    string address = 1;
+}
+
+message Provider {
+
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "provider"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
+
+    oneof activeField {
+        bool active = 2;
+    }
+
+    string name = 3;
+    string description = 4;
+    string logo = 5;
+    string siteCountryCode = 6;
+    string siteCountryName = 7;
+
+    google.protobuf.Timestamp createdAt = 8;
+    google.protobuf.Timestamp updatedAt = 9;
+}
+
+message Manufacture {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "manufacture"
+     };
+
+    string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}]; // идентификатор object id
+    string name = 2;
+    string siteCountryCode = 3;
+    string siteCountryName = 4;
+}
+
+message ProviderUsers {
+
+    option (bom.opts) = {
+         model: true
+         crud: true // нужны методы для переопределения
+         collection: "provider_users"
+     };
+
+    string providerId = 1 [(bom.field).tag = {mongoObjectId:true}];
+    string userId = 2 [(bom.field).tag = {mongoObjectId:true}];
+}
+
+message Pagination {
+    int32 totalCount = 1;
+    int32 totalPages = 2;
+    int32 currentPage = 3;
+    int32 size = 4;
+}
+
+message ProviderResponse {
+    int32 status = 1;
+    string message = 2;
+    Provider data = 3;
+}
+
+message ManufactureResponse {
+    int32 status = 1;
+    string message = 2;
+    Manufacture data = 3;
+}
+
+message ProvidersResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Provider data = 3;
+    Pagination pagination = 4;
+}
+message ManufacturesResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated Manufacture data = 3;
+    Pagination pagination = 4;
+}
+
+message RemoveResponse {
+    int32 status = 1;
+    string message = 2;
+}
+
+message ProviderUsersResponse {
+    int32 status = 1;
+    string message = 2;
+    repeated ProviderUsers data = 3;
+}
+
+message ProviderListSortFields {
+    enum Sort {
+        _id = 0;
+        Address = 1;
+    }
+}
+
+enum SortTypes {
+    asc = 0;
+    desc = 1;
+}
+
+message ProviderListSortQuery {
+    ProviderListSortFields.Sort field = 1;
+    SortTypes type = 2;
+}
+
+message ProviderListQueryRequest {
+    int32 page = 1;
+    int32 size = 2;
+    ProviderListSortQuery sort = 3;
+}

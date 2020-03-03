@@ -21,3 +21,4 @@ app
 /test.proto
 /test.pb.bom.go
 /test.pb.go
+/protoc-gen-bom

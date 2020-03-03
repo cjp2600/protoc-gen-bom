@@ -15,6 +15,6 @@ build:
 	protoc -I/usr/local/include -I.  \
 	-I$(GOPATH)/src   \
 	-I$(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis   \
-	--plugin=protoc-gen-mongo=app \
+	--plugin=protoc-gen-mongo=protoc-gen-bom \
 	--mongo_out="generateCrud=true,gateway:." \
  	test.proto
