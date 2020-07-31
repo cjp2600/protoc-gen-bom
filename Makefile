@@ -4,17 +4,19 @@ build-options:
 	-I$(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
 	--go_out=. \
 	plugin/options/bom.proto
-	
+
 build:
+	go build -o bin/protoc-gen-bom
+
 	protoc -I/usr/local/include -I. \
 	-I$(GOPATH)/src \
 	-I$(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
 	--go_out=. \
-	test.proto
+	example/example.proto
 
 	protoc -I/usr/local/include -I.  \
 	-I$(GOPATH)/src   \
 	-I$(GOPATH)/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis   \
-	--plugin=protoc-gen-mongo=protoc-gen-bom \
+	--plugin=protoc-gen-mongo=bin/protoc-gen-bom \
 	--mongo_out="generateCrud=true,gateway:." \
- 	test.proto
+ 	example/example.proto

@@ -135,6 +135,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateInsertMethod(msg)
 					p.GenerateFindOneMethod(msg)
 					p.GenerateUpdateAllMethod(msg)
+					p.GenerateUpdateWithoutConditionAllMethod(msg)
 					p.GerateWhereId(msg)
 					p.GenerateFindMethod(msg)
 					p.GenerateEachMethod(msg)
@@ -1137,6 +1138,92 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *generator.Descriptor) {
 
 		}
 
+	}
+	p.P(` if updateAt {`)
+
+	p.P(`upResult = primitive.D{`)
+	p.P(`{"$set", flatFields},`)
+	p.P(`{"$currentDate", primitive.D{{"updatedat", true}}},`)
+	p.P(`}`)
+
+	p.P(` } else {`)
+
+	p.P(`upResult = primitive.D{`)
+	p.P(`{"$set", flatFields},`)
+	p.P(`}`)
+
+	p.P(` }`)
+
+	p.P(`_, err := e.bom.UpdateRaw(upResult)`)
+	p.P(` if err != nil {`)
+	p.P(` return e, err`)
+	p.P(` }`)
+
+	p.P(` return e, nil`)
+	p.P(`}`)
+	p.P()
+}
+
+//GenerateUpdateAllMethod
+func (p *MongoPlugin) GenerateUpdateWithoutConditionAllMethod(message *generator.Descriptor) {
+	gName := p.GenerateName(message.GetName())
+	p.P()
+	p.P(`//Update - update model method, a check is made on existing fields.`)
+	p.P(`func (e *`, gName, `) UpdateWithoutCondition (updateAt bool) (*`, gName, `, error) {`)
+	p.P(`// check if bom object is nil`)
+	p.P(`if e.bom == nil {`)
+	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
+	p.P(`}`)
+	p.P(`var flatFields []primitive.E`)
+	p.P(`var upResult primitive.D`)
+
+	fields := message.GetField()
+	opt, ok := p.getMessageOptions(message)
+	if ok {
+		if table := opt.GetMerge(); len(table) > 0 {
+			st := strings.Split(table, ",")
+			if len(st) > 0 {
+				for _, str := range st {
+					if val, ok := p.Fields[p.GenerateName(str)]; ok {
+						for _, f1 := range val {
+							fields = append(fields, f1)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for _, field := range fields {
+		fieldName := field.GetName()
+
+		if strings.ToLower(fieldName) == "id" {
+			p.P(`// check if fil _id field`)
+			p.P(`if !e.Id.IsZero() {`)
+			p.P(`e.WhereId(e.Id.Hex())`)
+			p.P(`}`)
+		}
+
+		// skip _id field UpdatedAt
+		if strings.ToLower(fieldName) == "id" || strings.ToLower(fieldName) == "createdat" || strings.ToLower(fieldName) == "updatedat" {
+			continue
+		}
+		bomField := p.getFieldOptions(field)
+		if bomField != nil && bomField.Tag.GetSkip() {
+			continue
+		}
+
+		// find goType
+		fieldName = generator.CamelCase(fieldName)
+		mapName := strings.ToLower(fieldName)
+		oneOf := field.OneofIndex != nil
+
+		if oneOf {
+			p.P(`// set `, fieldName)
+			p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.Get`, fieldName, `()})`)
+		} else {
+			p.P(`flatFields = append(flatFields, primitive.E{Key: "`, mapName, `", Value: e.`, fieldName, `})`)
+		}
 	}
 	p.P(` if updateAt {`)
 
