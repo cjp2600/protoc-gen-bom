@@ -1,12 +1,12 @@
 module github.com/cjp2600/protoc-gen-bom
 
-require (
-	github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496
-	github.com/cjp2600/bom v1.2.1
-	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.3.4
-	go.mongodb.org/mongo-driver v1.3.0
-	google.golang.org/genproto v0.0.0-20200302123026-7795fca6ccb1
-)
+go 1.14
 
-go 1.13
+require (
+	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
+	github.com/cjp2600/bom v1.2.8-0.20200721145336-c92342ea267e
+	github.com/gogo/protobuf v1.3.1
+	github.com/golang/protobuf v1.4.2
+	go.mongodb.org/mongo-driver v1.3.5
+	google.golang.org/genproto v0.0.0-20200721032028-5044d0edf986
+)

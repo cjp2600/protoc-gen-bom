@@ -2,15 +2,13 @@ package plugin
 
 import (
 	"fmt"
-	"path"
-	"strings"
-
+	bom "github.com/cjp2600/protoc-gen-bom/plugin/options"
 	"github.com/gogo/protobuf/gogoproto"
 	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/protoc-gen-gogo/descriptor"
 	"github.com/gogo/protobuf/protoc-gen-gogo/generator"
-
-	bom "github.com/cjp2600/protoc-gen-bom/plugin/options"
+	"path"
+	"strings"
 )
 
 type MongoPlugin struct {
@@ -69,6 +67,7 @@ func (p *MongoPlugin) GenerateImports(file *generator.FileDescriptor) {
 	if p.useTime {
 		p.Generator.PrintImport("time", "time")
 		p.Generator.PrintImport("ptypes", "github.com/golang/protobuf/ptypes")
+		p.Generator.PrintImport("timestamppb", "github.com/golang/protobuf/ptypes/timestamp")
 	}
 	if p.useStrconv {
 		p.Generator.PrintImport("strconv", "strconv")
@@ -142,6 +141,7 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateWhereInMethod(msg)
 					p.GenerateOrWhereMethod(msg)
 					p.GenerateUpdateOneMethod(msg)
+					p.GenerateSetters(msg)
 				}
 
 			}
@@ -277,7 +277,9 @@ func (p *MongoPlugin) GenerateContructor(message *generator.Descriptor) {
 		p.P(`// create `, gName, ` mongo model of protobuf `, message.GetName())
 		p.P(`//`)
 		p.P(`func New`, gName, `() *`, gName, ` {`)
-		p.P(`return &`, gName, `{bom:  `, ServiceName, `BomWrapper().WithColl("`, collection, `")}`)
+		p.P(`model := new(`, gName, `)`)
+		p.P(`model.bom = `, ServiceName, `BomWrapper().WithColl("`, collection, `").WithModel(model)`)
+		p.P(`return model`)
 		p.P(`}`)
 	}
 }
@@ -285,18 +287,7 @@ func (p *MongoPlugin) GenerateContructor(message *generator.Descriptor) {
 // GenerateFindMethod
 func (p *MongoPlugin) GenerateWhereMethod(message *generator.Descriptor) {
 	gName := p.GenerateName(message.GetName())
-	p.P()
-	p.P(`//Deprecated: should use WhereConditions or WhereEq`)
-	p.P(`func (e *`, gName, `) Where(field string, value interface{}) *`, gName, ` {`)
-	p.P(`// check if bom object is nil`)
-	p.P(`if e.bom == nil {`)
-	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
-	p.P(`}`)
-	p.P(` e.bom.WhereEq(field, value)`)
-	p.P(` return e`)
-	p.P(`}`)
 
-	p.P()
 	p.P(`// WhereEq method`)
 	p.P(`func (e *`, gName, `) WhereEq(field string, value interface{}) *`, gName, ` {`)
 	p.P(`// check if bom object is nil`)
@@ -369,13 +360,13 @@ func (p *MongoPlugin) GenerateWhereMethod(message *generator.Descriptor) {
 	p.P(`}`)
 
 	p.P()
-	p.P(`// LastId method`)
-	p.P(`func (e *`, gName, `) LastId(lastId string) *`, gName, ` {`)
+	p.P(`// LastID method`)
+	p.P(`func (e *`, gName, `) LastID(lastID string) *`, gName, ` {`)
 	p.P(`// check if bom object is nil`)
 	p.P(`if e.bom == nil {`)
 	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 	p.P(`}`)
-	p.P(` e.bom.WithLastId(lastId)`)
+	p.P(` e.bom.WithLastID(lastID)`)
 	p.P(` return e`)
 	p.P(`}`)
 
@@ -415,13 +406,13 @@ func (p *MongoPlugin) GenerateWhereMethod(message *generator.Descriptor) {
 
 	p.P()
 	p.P(`// List with last id for fast pagination`)
-	p.P(`func (e *`, gName, `) ListWithLastId() ([]*`, gName, `, string, error) {`)
+	p.P(`func (e *`, gName, `) ListWithLastID() ([]*`, gName, `, string, error) {`)
 	p.P(`// check if bom object is nil`)
 	p.P(`if e.bom == nil {`)
 	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 	p.P(`}`)
 	p.P(`var items []*`, gName)
-	p.P(`lastId, err := e.bom.ListWithLastId(func(cur *mongo.Cursor) error {`)
+	p.P(`lastID, err := e.bom.ListWithLastID(func(cur *mongo.Cursor) error {`)
 	p.P(`var result `, gName, ``)
 	p.P(`err := cur.Decode(&result)`)
 	p.P(`if err != nil {`)
@@ -430,7 +421,7 @@ func (p *MongoPlugin) GenerateWhereMethod(message *generator.Descriptor) {
 	p.P(`items = append(items, &result)`)
 	p.P(`return nil`)
 	p.P(`})`)
-	p.P(`return items, lastId, err`)
+	p.P(`return items, lastID, err`)
 	p.P(`}`)
 
 	p.P()
@@ -514,15 +505,15 @@ func (p *MongoPlugin) GenerateEachMethod(message *generator.Descriptor) {
 		p.P(`}`)
 		p.P(`// set size`)
 		p.P(`e.Size(size)`)
-		p.P(``, strings.ToLower(source), `, lastId, err := e.ListWithLastId()`)
+		p.P(``, strings.ToLower(source), `, lastID, err := e.ListWithLastID()`)
 
 		p.P(`// first start`)
 		p.P(`if !fn(`, strings.ToLower(source), `) {`)
 		p.P(`return nil`)
 		p.P(`}`)
 
-		p.P(`for len(lastId) > 0 {`)
-		p.P(``, strings.ToLower(source), `, lastId, err = e.LastId(lastId).ListWithLastId()`)
+		p.P(`for len(lastID) > 0 {`)
+		p.P(``, strings.ToLower(source), `, lastID, err = e.LastID(lastID).ListWithLastID()`)
 		p.P(`if !fn(`, strings.ToLower(source), `) {`)
 		p.P(`continue`)
 		p.P(`}`)
@@ -600,7 +591,7 @@ func (p *MongoPlugin) GenerateBomConnection(message *generator.Descriptor) {
 	p.P()
 	p.P(`// set custom bom wrapper`)
 	p.P(`func (e *`, gName, `) SetBom(bom *bom.Bom) *`, gName, ` {`)
-	p.P(` e.bom = bom.WithColl("`, p.getCollection(message), `") `)
+	p.P(` e.bom = bom.WithColl("`, p.getCollection(message), `").WithModel(e) `)
 	p.P(` return e`)
 	p.P(`}`)
 }
@@ -627,7 +618,7 @@ func (p *MongoPlugin) GenerateWhereInMethod(message *generator.Descriptor) {
 	p.P(`if e.bom == nil {`)
 	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 	p.P(`}`)
-	p.P(` e.bom.InWhere(field, value)`)
+	p.P(` e.bom.WhereIn(field, value)`)
 	p.P(` return e`)
 	p.P(`}`)
 
@@ -639,7 +630,7 @@ func (p *MongoPlugin) GenerateWhereInMethod(message *generator.Descriptor) {
 	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 	p.P(`}`)
 	p.P(`// exist in bom version >= 1.0.11`)
-	p.P(` e.bom.NotInWhere(field, value)`)
+	p.P(` e.bom.NotWhereIn(field, value)`)
 	p.P(` return e`)
 	p.P(`}`)
 }
@@ -656,6 +647,7 @@ func (p *MongoPlugin) GenerateOrWhereMethod(message *generator.Descriptor) {
 	p.P(` e.bom.OrWhereEq(field, value)`)
 	p.P(` return e`)
 	p.P(`}`)
+
 	p.P(`// WhereNotEq`)
 	p.P(`func (e *`, gName, `) WhereNotEq(field string, value interface{}) *`, gName, ` {`)
 	p.P(`// check if bom object is nil`)
@@ -665,6 +657,7 @@ func (p *MongoPlugin) GenerateOrWhereMethod(message *generator.Descriptor) {
 	p.P(` e.bom.WhereNotEq(field, value)`)
 	p.P(` return e`)
 	p.P(`}`)
+
 	p.P(`// OrWhereEq method`)
 	p.P(`func (e *`, gName, `) OrWhereEq(field string, value interface{}) *`, gName, ` {`)
 	p.P(`// check if bom object is nil`)
@@ -737,7 +730,224 @@ func (p *MongoPlugin) GenerateFindMethod(message *generator.Descriptor) {
 
 //GenerateFindOneMethod
 func (p *MongoPlugin) GenerateFindOneMethod(message *generator.Descriptor) {
+	for _, field := range p.getFields(message) {
+		fieldName := p.getFieldName(field)
+		fieldType := p.getFieldType(message, field)
 
+		if p.isNotObjectOrArray(field) {
+			p.useMongoDr = true
+			p.comment(fieldName)
+			p.P(`func (e *`, p.modelName(message), `) FindOneBy`, fieldName, `(`, fieldName, ` `, fieldType, `) error {`)
+			p.P(`// check if bom object is nil`)
+			p.P(`if e.bom == nil {`)
+			p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
+			p.P(`}`)
+			p.P(` err := e.bom.`)
+
+			if p.isObjectId(field) {
+				fn := strings.ToLower(fieldName)
+				if fn == "id" {
+					fn = "_id"
+				}
+				p.P(` WhereEq("`, fn, `", bom.ToObj(`, fieldName, `)).`)
+			} else {
+				p.P(` WhereEq("`, strings.ToLower(fieldName), `", `, fieldName, ` ).`)
+			}
+
+			p.P(` FindOne(func(s *mongo.SingleResult) error {`)
+			p.P(` err := s.Decode(e)`)
+			p.P(` if err != nil {`)
+			p.P(` return err`)
+			p.P(` }`)
+			p.P(` return nil`)
+			p.P(` })`)
+			p.P(` return err`)
+			p.P(`}`)
+			p.P()
+		}
+	}
+}
+
+//GenerateSetters
+func (p *MongoPlugin) GenerateSetters(message *generator.Descriptor) {
+	for _, field := range p.getFields(message) {
+		if p.isNotObjectOrArray(field) {
+			fieldName := p.getFieldName(field)
+			// objectId setters
+			if p.isObjectId(field) {
+				functionName := "Get" + fieldName + "ObjectID"
+				p.comment(functionName + " - string to ObjectID converter")
+				p.printFunc(message.GetName(), functionName, nil, []string{"primitive.ObjectID"}, func() {
+					p.comment("return ObjectID")
+					if p.isOneOf(field) {
+						sourceName := p.GetFieldName(message, field)
+						interfaceName := p.Generator.OneOfTypeName(message, field)
+						p.P(`var s primitive.ObjectID`)
+						p.NotNil("e.Get"+sourceName+"()", func() {
+							p.comment(sourceName, interfaceName)
+							p.P(`s =  bom.ToObj(e.Get`, fieldName, `())`)
+						})
+						p.P(`return s`)
+					} else {
+						p.P(`return bom.ToObj(e.`, fieldName, `)`)
+					}
+				})
+
+				functionName = "Get" + fieldName + "String"
+				p.comment(functionName + " - objectId to string converter")
+				p.printFunc(p.modelName(message), functionName, nil, []string{"string"}, func() {
+					p.comment("return string")
+					if p.isOneOf(field) {
+						sourceName := p.GetFieldName(message, field)
+						interfaceName := p.Generator.OneOfTypeName(message, field)
+						p.P(`var s string`)
+						p.NotNil("e."+fieldName, func() {
+							p.comment(sourceName, interfaceName)
+							p.P(`s = e.`, fieldName, `.Hex()`)
+						})
+						p.P(`return s`)
+					} else {
+						p.P(`return e.`, fieldName, `.Hex()`)
+					}
+				})
+
+			}
+		}
+	}
+
+	for _, field := range message.GetField() {
+		fieldName := p.getFieldName(field)
+		if p.isCustomMethod(field) && p.isTimestamp(p.getFieldType(message, field)) {
+			functionName := "Get" + fieldName + "Time"
+			p.comment(functionName + " - timestamp.timestamp to time.Time")
+			p.printFunc(message.GetName(), functionName, nil, []string{"time.Time"}, func() {
+				p.useTime = true
+				p.comment(`get converted date`)
+				if p.isOneOf(field) {
+					sourceName := p.GetFieldName(message, field)
+					interfaceName := p.Generator.OneOfTypeName(message, field)
+					p.P(`var t time.Time`)
+					p.NotNil("e.Get"+sourceName+"()", func() {
+						p.comment(sourceName, interfaceName)
+						p.P(`t = time.Unix(e.Get`, fieldName, `().GetSeconds(), int64(e.Get`, fieldName, `().GetNanos()))`)
+					})
+					p.P(`return t`)
+				} else {
+					p.P(`return time.Unix(e.`, fieldName, `.GetSeconds(), int64(e.`, fieldName, `.GetNanos()))`)
+				}
+			})
+		}
+
+		if p.isCustomMethod(field) && p.isTimestamp(p.getFieldType(message, field)) {
+			functionName := "Get" + fieldName + "Timestamp"
+			p.comment(functionName + " - time.Time to timestamp.Timestamp")
+			p.printFunc(p.modelName(message), functionName, nil, []string{"*timestamppb.Timestamp"}, func() {
+				p.comment("convert time to times")
+				p.useTime = true
+				if p.isOneOf(field) {
+					sourceName := p.GetFieldName(message, field)
+					interfaceName := p.Generator.OneOfTypeName(message, field)
+					p.P(`var timestamp *timestamppb.Timestamp`)
+					p.NotNil("e."+fieldName, func() {
+						p.comment(sourceName, interfaceName)
+						p.P(`timestamp, _ = ptypes.TimestampProto(e.Get`, fieldName, `())`)
+					})
+					p.P(`return timestamp`)
+				} else {
+					p.P(`t`, fieldName, `, _ := ptypes.TimestampProto(e.`, fieldName, `)`)
+					p.P(`return t`, fieldName)
+				}
+			})
+		}
+
+	}
+}
+
+func (p *MongoPlugin) isTimestamp(fieldType string) bool {
+	return strings.ToLower(fieldType) == "*timestamp.timestamp"
+}
+
+func (p *MongoPlugin) isTime(fieldType string) bool {
+	return strings.ToLower(fieldType) == "time.time"
+}
+
+func (p *MongoPlugin) isCustomMethod(field *descriptor.FieldDescriptorProto) bool {
+	return (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field)
+}
+
+func (p *MongoPlugin) NotNil(v string, body func()) {
+	p.P(`if `, v, ` != nil {`)
+	body()
+	p.P(`}`)
+}
+
+func (p *MongoPlugin) printFunc(fromModel, functionName string, arg []string, returnArg []string, body func()) {
+	var pReturnArg string
+	var parg string
+	if arg != nil && len(arg) > 0 {
+		parg = strings.Join(arg, " ")
+	}
+	if len(returnArg) > 0 {
+		if len(returnArg) > 1 {
+			pReturnArg = `(` + strings.Join(returnArg, ",") + `)`
+		} else if len(returnArg) == 1 {
+			pReturnArg = returnArg[0]
+		}
+	}
+	p.P(`func (e *`, fromModel, `) `, functionName, `(`, parg, `) `, pReturnArg, ` {`)
+	body()
+	p.P(`}`)
+	p.P(``)
+}
+
+func (p *MongoPlugin) comment(comments ...string) {
+	for _, comment := range comments {
+		p.P(`// `, comment)
+	}
+}
+
+func (p *MongoPlugin) eachFields(message *generator.Descriptor, body func(field *descriptor.FieldDescriptorProto)) {
+	for _, field := range p.getFields(message) {
+		body(field)
+	}
+}
+
+func (p *MongoPlugin) isObjectId(field *descriptor.FieldDescriptorProto) bool {
+	return p.hasObjectIdTag(p.getFieldOptions(field))
+}
+
+func (p *MongoPlugin) getFieldType(message *generator.Descriptor, field *descriptor.FieldDescriptorProto) string {
+	goTyp, _ := p.GoType(message, field)
+	return goTyp
+}
+
+func (p *MongoPlugin) hasObjectIdTag(bomField *bom.BomFieldOptions) bool {
+	return bomField != nil && bomField.Tag.GetMongoObjectId()
+}
+
+func (p *MongoPlugin) isNotObjectOrArray(field *descriptor.FieldDescriptorProto) bool {
+	return !field.IsMessage() && !p.isArray(field)
+}
+
+func (p *MongoPlugin) modelName(message *generator.Descriptor) string {
+	return p.GenerateName(message.GetName())
+}
+
+func (p *MongoPlugin) isArray(field *descriptor.FieldDescriptorProto) bool {
+	return field.IsRepeated()
+}
+
+func (p *MongoPlugin) isOneOf(field *descriptor.FieldDescriptorProto) bool {
+	return field.OneofIndex != nil
+}
+
+func (p *MongoPlugin) getFieldName(field *descriptor.FieldDescriptorProto) string {
+	fieldName := field.GetName()
+	fieldName = generator.CamelCase(fieldName)
+	return fieldName
+}
+
+func (p *MongoPlugin) getFields(message *generator.Descriptor) []*descriptor.FieldDescriptorProto {
 	fields := message.GetField()
 	opt, ok := p.getMessageOptions(message)
 	if ok {
@@ -754,51 +964,7 @@ func (p *MongoPlugin) GenerateFindOneMethod(message *generator.Descriptor) {
 			}
 		}
 	}
-
-	for _, field := range fields {
-
-		//nullable := gogoproto.IsNullable(field)
-		repeated := field.IsRepeated()
-		fieldName := field.GetName()
-		//oneOf := field.OneofIndex != nil
-		goTyp, _ := p.GoType(message, field)
-		fieldName = generator.CamelCase(fieldName)
-		mName := p.GenerateName(message.GetName())
-
-		if !field.IsMessage() && !repeated {
-			p.useMongoDr = true
-			p.P(`// FindOneBy`, fieldName, ` - find method`)
-			p.P(`func (e *`, mName, `) FindOneBy`, fieldName, `(`, fieldName, ` `, goTyp, `) (*`, mName, `, error) {`)
-			p.P(`// check if bom object is nil`)
-			p.P(`if e.bom == nil {`)
-			p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
-			p.P(`}`)
-			p.P(`mongoModel := `, mName, `{}`)
-			p.P(` err := e.bom.`)
-			bomField := p.getFieldOptions(field)
-			if bomField != nil && bomField.Tag.GetMongoObjectId() {
-				fn := strings.ToLower(fieldName)
-				if fn == "id" {
-					fn = "_id"
-				}
-				p.P(` Where("`, fn, `", bom.ToObj(`, fieldName, `)).`)
-			} else {
-				p.P(` Where("`, strings.ToLower(fieldName), `", `, fieldName, ` ).`)
-			}
-
-			p.P(` FindOne(func(s *mongo.SingleResult) error {`)
-			p.P(` err := s.Decode(&mongoModel)`)
-			p.P(` if err != nil {`)
-			p.P(` return err`)
-			p.P(` }`)
-			p.P(` return nil`)
-			p.P(` })`)
-			p.P(` return &mongoModel, err`)
-			p.P(`}`)
-			p.P()
-		}
-
-	}
+	return fields
 }
 
 //GenerateUpdateOneMethod
@@ -923,7 +1089,7 @@ func (p *MongoPlugin) GerateWhereId(message *generator.Descriptor) {
 				p.P(`if e.bom == nil {`)
 				p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 				p.P(`}`)
-				p.P(`e.bom.InWhere("`, f, `", bom.ToObjects(ids))`)
+				p.P(`e.bom.WhereIn("`, f, `", bom.ToObjects(ids))`)
 				p.P(`return e`)
 				p.P(`}`)
 				p.P()
@@ -1722,7 +1888,7 @@ func (p *MongoPlugin) GenerateToObject(message *generator.Descriptor) {
 		}
 		p.P()
 		p.P(`// bom connection`)
-		p.P(`resp.bom = `, ServiceName, `BomWrapper().WithColl("`, collection, `")`)
+		p.P(`resp.bom = `, ServiceName, `BomWrapper().WithColl("`, collection, `").WithModel(resp)`)
 		p.P()
 	}
 
