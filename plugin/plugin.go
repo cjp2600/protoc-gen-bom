@@ -376,7 +376,7 @@ func (p *MongoPlugin) GenerateWhereMethod(message *generator.Descriptor) {
 	p.P(`if e.bom == nil {`)
 	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 	p.P(`}`)
-	p.P(` e.bom.WithLastId(lastId)`)
+	p.P(` e.bom.WithLastID(lastId)`)
 	p.P(` return e`)
 	p.P(`}`)
 
@@ -416,13 +416,13 @@ func (p *MongoPlugin) GenerateWhereMethod(message *generator.Descriptor) {
 
 	p.P()
 	p.P(`// List with last id for fast pagination`)
-	p.P(`func (e *`, gName, `) ListWithLastId() ([]*`, gName, `, string, error) {`)
+	p.P(`func (e *`, gName, `) ListWithLastID() ([]*`, gName, `, string, error) {`)
 	p.P(`// check if bom object is nil`)
 	p.P(`if e.bom == nil {`)
 	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 	p.P(`}`)
 	p.P(`var items []*`, gName)
-	p.P(`lastId, err := e.bom.ListWithLastId(func(cur *mongo.Cursor) error {`)
+	p.P(`lastId, err := e.bom.ListWithLastID(func(cur *mongo.Cursor) error {`)
 	p.P(`var result `, gName, ``)
 	p.P(`err := cur.Decode(&result)`)
 	p.P(`if err != nil {`)
@@ -515,7 +515,7 @@ func (p *MongoPlugin) GenerateEachMethod(message *generator.Descriptor) {
 		p.P(`}`)
 		p.P(`// set size`)
 		p.P(`e.Size(size)`)
-		p.P(``, strings.ToLower(source), `, lastId, err := e.ListWithLastId()`)
+		p.P(``, strings.ToLower(source), `, lastId, err := e.ListWithLastID()`)
 
 		p.P(`// first start`)
 		p.P(`if !fn(`, strings.ToLower(source), `) {`)
@@ -523,7 +523,7 @@ func (p *MongoPlugin) GenerateEachMethod(message *generator.Descriptor) {
 		p.P(`}`)
 
 		p.P(`for len(lastId) > 0 {`)
-		p.P(``, strings.ToLower(source), `, lastId, err = e.LastId(lastId).ListWithLastId()`)
+		p.P(``, strings.ToLower(source), `, lastId, err = e.LastId(lastId).ListWithLastID()`)
 		p.P(`if !fn(`, strings.ToLower(source), `) {`)
 		p.P(`continue`)
 		p.P(`}`)
@@ -628,7 +628,7 @@ func (p *MongoPlugin) GenerateWhereInMethod(message *generator.Descriptor) {
 	p.P(`if e.bom == nil {`)
 	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 	p.P(`}`)
-	p.P(` e.bom.InWhere(field, value)`)
+	p.P(` e.bom.WhereIn(field, value)`)
 	p.P(` return e`)
 	p.P(`}`)
 
@@ -640,7 +640,7 @@ func (p *MongoPlugin) GenerateWhereInMethod(message *generator.Descriptor) {
 	p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 	p.P(`}`)
 	p.P(`// exist in bom version >= 1.0.11`)
-	p.P(` e.bom.NotInWhere(field, value)`)
+	p.P(` e.bom.NotWhereIn(field, value)`)
 	p.P(` return e`)
 	p.P(`}`)
 }
@@ -782,9 +782,9 @@ func (p *MongoPlugin) GenerateFindOneMethod(message *generator.Descriptor) {
 				if fn == "id" {
 					fn = "_id"
 				}
-				p.P(` Where("`, fn, `", bom.ToObj(`, fieldName, `)).`)
+				p.P(` WhereEq("`, fn, `", bom.ToObj(`, fieldName, `)).`)
 			} else {
-				p.P(` Where("`, strings.ToLower(fieldName), `", `, fieldName, ` ).`)
+				p.P(` WhereEq("`, strings.ToLower(fieldName), `", `, fieldName, ` ).`)
 			}
 
 			p.P(` FindOne(func(s *mongo.SingleResult) error {`)
@@ -924,7 +924,7 @@ func (p *MongoPlugin) GerateWhereId(message *generator.Descriptor) {
 				p.P(`if e.bom == nil {`)
 				p.P(`e.SetBom(`, ServiceName, `BomWrapper())`)
 				p.P(`}`)
-				p.P(`e.bom.InWhere("`, f, `", bom.ToObjects(ids))`)
+				p.P(`e.bom.WhereIn("`, f, `", bom.ToObjects(ids))`)
 				p.P(`return e`)
 				p.P(`}`)
 				p.P()
