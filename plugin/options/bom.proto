@@ -3,7 +3,7 @@ package bom;
 
 import "google/protobuf/descriptor.proto";
 
-option go_package = "github.com/cjp2600/protoc-gen-bom";
+option go_package = "github.com/cjp2600/protoc-gen-bom;protoc_gen_bom";
 
 // Currently no file options
 extend google.protobuf.FileOptions {
