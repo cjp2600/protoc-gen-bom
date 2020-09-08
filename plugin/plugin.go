@@ -134,6 +134,8 @@ func (p *MongoPlugin) Generate(file *generator.FileDescriptor) {
 					p.GenerateContructor(msg)
 					p.GenerateInsertMethod(msg)
 					p.GenerateFindOneMethod(msg)
+					p.GenerateFieldNameMethod(msg)
+					p.GenerateWhereFieldMethod(msg)
 					p.GenerateUpdateAllMethod(msg)
 					p.GenerateUpdateWithoutConditionAllMethod(msg)
 					p.GerateWhereId(msg)
@@ -736,6 +738,251 @@ func (p *MongoPlugin) GenerateFindMethod(message *generator.Descriptor) {
 	p.P(`}`)
 }
 
+//GenerateFieldName method
+func (p *MongoPlugin) GenerateFieldNameMethod(message *generator.Descriptor) {
+
+	fields := message.GetField()
+	opt, ok := p.getMessageOptions(message)
+	if ok {
+		if table := opt.GetMerge(); len(table) > 0 {
+			st := strings.Split(table, ",")
+			if len(st) > 0 {
+				for _, str := range st {
+					if val, ok := p.Fields[p.GenerateName(str)]; ok {
+						for _, f1 := range val {
+							fields = append(fields, f1)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for _, field := range fields {
+
+		//nullable := gogoproto.IsNullable(field)
+		repeated := field.IsRepeated()
+		fieldName := field.GetName()
+		//oneOf := field.OneofIndex != nil
+		//goTyp, _ := p.GoType(message, field)
+		fieldName = generator.CamelCase(fieldName)
+		mName := p.GenerateName(message.GetName())
+
+		if !field.IsMessage() && !repeated {
+			p.useMongoDr = true
+			p.P(`// Get`, fieldName, `FieldName - mongo field name`)
+			p.P(`func (e *`, mName, `) Get`, fieldName, `FieldName() string {`)
+			fn := strings.ToLower(fieldName)
+			if fn == "id" {
+				fn = "_id"
+			}
+			p.P(`return "`, fn, `"`)
+			p.P(`}`)
+			p.P()
+		}
+
+	}
+}
+
+//GenerateWhereFieldMethod
+func (p *MongoPlugin) GenerateWhereFieldMethod(message *generator.Descriptor) {
+
+	fields := message.GetField()
+	opt, ok := p.getMessageOptions(message)
+	if ok {
+		if table := opt.GetMerge(); len(table) > 0 {
+			st := strings.Split(table, ",")
+			if len(st) > 0 {
+				for _, str := range st {
+					if val, ok := p.Fields[p.GenerateName(str)]; ok {
+						for _, f1 := range val {
+							fields = append(fields, f1)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for _, field := range fields {
+		repeated := field.IsRepeated()
+		fieldName := field.GetName()
+		goTyp, _ := p.GoType(message, field)
+		fieldName = generator.CamelCase(fieldName)
+		mName := p.GenerateName(message.GetName())
+
+		if !field.IsMessage() && !repeated {
+			p.useMongoDr = true
+			p.P(`// Where`, fieldName, `Eq - filter method `)
+			p.P(`func (e *`, mName, `) Where`, fieldName, `Eq(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.WhereEq(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.WhereEq(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated {
+			p.useMongoDr = true
+			p.P(`// OrWhere`, fieldName, `Eq - filter method `)
+			p.P(`func (e *`, mName, `) OrWhere`, fieldName, `Eq(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.OrWhereEq(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.OrWhereEq(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated && !field.IsBool() {
+			p.useMongoDr = true
+			p.P(`// Where`, fieldName, `In - filter method `)
+			p.P(`func (e *`, mName, `) Where`, fieldName, `In(`, fieldName, ` []`, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.WhereIn(`, fn, `, bom.ToObjects(`, fieldName, `))`)
+			} else {
+				p.P(`return e.WhereIn(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated {
+			p.useMongoDr = true
+			p.P(`// Where`, fieldName, `NotEq - filter method `)
+			p.P(`func (e *`, mName, `) Where`, fieldName, `NotEq(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.WhereNotEq(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.WhereNotEq(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated && field.IsScalar() && !field.IsBool() {
+			p.useMongoDr = true
+			p.P(`// Where`, fieldName, `Gt - filter method `)
+			p.P(`func (e *`, mName, `) Where`, fieldName, `Gt(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.WhereGt(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.WhereGt(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated && field.IsScalar() && !field.IsBool() {
+			p.useMongoDr = true
+			p.P(`// OrWhere`, fieldName, `Gt - filter method `)
+			p.P(`func (e *`, mName, `) OrWhere`, fieldName, `Gt(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.OrWhereGt(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.OrWhereGt(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated && field.IsScalar() && !field.IsBool() {
+			p.useMongoDr = true
+			p.P(`// Where`, fieldName, `Gte - filter method `)
+			p.P(`func (e *`, mName, `) Where`, fieldName, `Gte(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.WhereGte(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.WhereGte(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated && field.IsScalar() && !field.IsBool() {
+			p.useMongoDr = true
+			p.P(`// OrWhere`, fieldName, `Gte - filter method `)
+			p.P(`func (e *`, mName, `) OrWhere`, fieldName, `Gte(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.OrWhereGte(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.OrWhereGte(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated && field.IsScalar() && !field.IsBool() {
+			p.useMongoDr = true
+			p.P(`// Where`, fieldName, `Lt - filter method `)
+			p.P(`func (e *`, mName, `) Where`, fieldName, `Lt(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.WhereLt(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.WhereLt(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated && field.IsScalar() && !field.IsBool() {
+			p.useMongoDr = true
+			p.P(`// OrWhere`, fieldName, `Lt - filter method `)
+			p.P(`func (e *`, mName, `) OrWhere`, fieldName, `Lt(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.OrWhereLt(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.OrWhereLt(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated && field.IsScalar() && !field.IsBool() {
+			p.useMongoDr = true
+			p.P(`// Where`, fieldName, `Lte - filter method `)
+			p.P(`func (e *`, mName, `) Where`, fieldName, `Lte(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.WhereLte(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.WhereLte(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+		if !field.IsMessage() && !repeated && field.IsScalar() && !field.IsBool() {
+			p.useMongoDr = true
+			p.P(`// OrWhere`, fieldName, `Lte - filter method `)
+			p.P(`func (e *`, mName, `) OrWhere`, fieldName, `Lte(`, fieldName, ` `, goTyp, `) *`, mName, ` {`)
+			fn := `e.Get` + fieldName + `FieldName()`
+			bomField := p.getFieldOptions(field)
+			if bomField != nil && bomField.Tag.GetMongoObjectId() {
+				p.P(`return e.OrWhereLte(`, fn, `, bom.ToObj(`, fieldName, `))`)
+			} else {
+				p.P(`return e.OrWhereLte(`, fn, `, `, fieldName, ` )`)
+			}
+			p.P(`}`)
+			p.P()
+		}
+
+	}
+}
+
 //GenerateFindOneMethod
 func (p *MongoPlugin) GenerateFindOneMethod(message *generator.Descriptor) {
 
@@ -778,13 +1025,11 @@ func (p *MongoPlugin) GenerateFindOneMethod(message *generator.Descriptor) {
 			p.P(` err := e.bom.`)
 			bomField := p.getFieldOptions(field)
 			if bomField != nil && bomField.Tag.GetMongoObjectId() {
-				fn := strings.ToLower(fieldName)
-				if fn == "id" {
-					fn = "_id"
-				}
-				p.P(` WhereEq("`, fn, `", bom.ToObj(`, fieldName, `)).`)
+				fn := `e.Get` + fieldName + `FieldName()`
+				p.P(` WhereEq(`, fn, `, bom.ToObj(`, fieldName, `)).`)
 			} else {
-				p.P(` WhereEq("`, strings.ToLower(fieldName), `", `, fieldName, ` ).`)
+				fn := `e.Get` + fieldName + `FieldName()`
+				p.P(` WhereEq(`, fn, `, `, fieldName, ` ).`)
 			}
 
 			p.P(` FindOne(func(s *mongo.SingleResult) error {`)
@@ -1860,7 +2105,15 @@ func (w *MongoPlugin) generateEntitiesMethods() {
 							if field.GetName() == f.GetName() {
 								fieldName := field.GetName()
 								fieldName = generator.CamelCase(fieldName)
-								w.P(`entity.`, fieldName, ` = e.`, fieldName)
+
+								// check is one of
+								oneOfField := field.OneofIndex != nil
+								if oneOfField {
+									w.P(`entity.`, fieldName, ` = e.Get`, fieldName, `()`)
+								} else {
+									w.P(`entity.`, fieldName, ` = e.`, fieldName)
+								}
+
 							}
 						}
 					}
@@ -1872,7 +2125,16 @@ func (w *MongoPlugin) generateEntitiesMethods() {
 						for _, f2 := range fields {
 							fieldName := f2.GetName()
 							fieldName = generator.CamelCase(fieldName)
-							w.P(`entity.`, fieldName, ` = e.`, fieldName)
+
+							// check is one of
+							oneOfField := f2.OneofIndex != nil
+
+							if oneOfField {
+								w.P(`entity.`, fieldName, ` = e.Get`, fieldName, `()`)
+							} else {
+								w.P(`entity.`, fieldName, ` = e.`, fieldName)
+							}
+
 						}
 					}
 				}

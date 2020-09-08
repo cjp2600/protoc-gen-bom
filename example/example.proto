@@ -156,6 +156,21 @@ message Warehouse {
     string address = 1;
 }
 
+message ConvertProviderRequest {
+    // определяем сообщение как модель
+    option (bom.opts) = {
+         model: true
+         convertTo: "Provider"
+     };
+
+    oneof nameField {
+             string name = 1;
+    }
+    oneof weweweField {
+        string wewewe = 12;
+    }
+}
+
 message Provider {
 
     // определяем сообщение как модель
@@ -174,6 +189,7 @@ message Provider {
     string name = 3;
     string description = 4;
     string logo = 5;
+    int32 age = 15;
     string siteCountryCode = 6;
     string siteCountryName = 7;
 
