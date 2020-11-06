@@ -1,4 +1,4 @@
-### protoc-gen-bom
+## protoc-gen-bom
 
 
 ### Example
