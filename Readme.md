@@ -1,4 +1,4 @@
-## protoc-gen-bom
+## Protoc-gen-bom
 
 
 ## Example 
@@ -29,6 +29,7 @@ message User {
 
     // Set the basic id using ObjectID
     string id = 1 [(bom.field).tag = {mongoObjectId:true isID:true}];
+    bool active = 2;
     string firstName = 3;
     string lastName = 4;
     string secondName = 5;
@@ -40,6 +41,23 @@ message User {
 ```
 
 After generation, we have the following methods available
+
+```go
+
+// create MongoDB Model from protobuf (UserMongo)
+type UserMongo struct {
+	Id              primitive.ObjectID          `_id, omitempty`
+	Active          bool                        `json:"active"`
+	FirstName       string                      `json:"firstname"`
+	LastName        string                      `json:"lastname"`
+	SecondName      string                      `json:"secondname"`
+	Phone           string                      `json:"phone"`
+	Email           string                      `json:"email"`
+	Type            UserTypes                   `json:"type"`
+	bom             *bom.Bom
+}
+
+```
 
 ### FindOne
 ```go
