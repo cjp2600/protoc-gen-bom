@@ -1,5 +1,5 @@
 ## Protoc-gen-bom
-
+A protobuf compiler plugin designed to generate MongoDB models and APIs for simple object persistence tasks
 
 ## Example 
 
@@ -58,6 +58,20 @@ type UserMongo struct {
 }
 
 ```
+### ToMongo
+method of conversion from protobuf of an object to a mongo object
+
+### ToPB 
+method of conversion from mongo of an object to a protobuf object
+
+### InsertOne
+```go
+	query := item.ToMongo()
+	p, err := q.InsertOne()
+	if err != nil {
+		return nil, err
+	}
+```
 
 ### FindOne
 ```go
@@ -81,6 +95,39 @@ type UserMongo struct {
 ```go
 	// func (e *UserMongo) ListWithPagination() ([]*UserMongo, *bom.Pagination, error) {
 	user, pagination, err := pb.NewUserMongo().ListWithPagination()
+	if err != nil {
+		return
+	}
+```
+### FindOneById
+```go
+	// func (e *UserMongo) FindOneById(Id string) (*UserMongo, error) {
+	user, err := pb.NewUserMongo().FindOneById("5f3a4ea2e97e882308d8f5ac")
+	if err != nil {
+		return
+	}
+```
+### FindOneById
+```go
+	// func (e *UserMongo) FindOneById(Id string) (*UserMongo, error) {
+	user, err := pb.NewUserMongo().FindOneById("5f3a4ea2e97e882308d8f5ac")
+	if err != nil {
+		return
+	}
+```
+### GetBulk
+```go
+	// func (e *UserMongo) GetBulk(ids []string) ([]*UserMongo, error) {
+	user, err := pb.NewUserMongo().GetBulk([]string{"5f3a4ea2e97e882308d8f5ac","1f3a4ea2e97e882308d8f5ac"})
+	if err != nil {
+		return
+	}
+```
+
+### ListWithLastID
+```go
+	// func (e *UserMongo) GetBulk(ids []string) ([]*UserMongo, error) {
+	user, err := pb.NewUserMongo().GetBulk([]string{"5f3a4ea2e97e882308d8f5ac","1f3a4ea2e97e882308d8f5ac"})
 	if err != nil {
 		return
 	}
