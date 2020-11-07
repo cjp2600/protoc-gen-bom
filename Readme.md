@@ -1,7 +1,9 @@
 ## protoc-gen-bom
 
 
-### Example
+## Example 
+
+Describe the essence of what we want to work with.
 
 ```protobuf
 syntax = "proto3";
@@ -35,4 +37,33 @@ message User {
     UserTypes type = 12;
 }
 
+```
+
+After generation, we have the following methods available
+
+### FindOne
+```go
+    // func (e *UserMongo) FindOne() (*UserMongo, error) {
+	user, err := pb.NewUserMongo().WhereId("5f3a4ea2e97e882308d8f5ac").FindOne()
+	if err != nil {
+		return
+	}
+```
+
+### List
+```go
+	// func (e *UserMongo) List() ([]*UserMongo, error) {
+	users, err := pb.NewUserMongo().List()
+	if err != nil {
+		return
+	}
+```
+
+### ListWithPagination
+```go
+	// func (e *UserMongo) ListWithPagination() ([]*UserMongo, *bom.Pagination, error) {
+	user, pagination, err := pb.NewUserMongo().ListWithPagination()
+	if err != nil {
+		return
+	}
 ```
