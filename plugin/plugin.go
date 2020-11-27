@@ -1077,15 +1077,15 @@ func (p *MongoPlugin) GenerateUpdateOneMethod(message *generator.Descriptor) {
 
 	for _, field := range fields {
 		fieldName := field.GetName()
-		if strings.ToLower(fieldName) == "id" {
+
+		if strings.EqualFold(fieldName, "id") {
 			continue
 		}
-		//oneof := field.OneofIndex != nil
 
 		goTyp, _ := p.GoType(message, field)
 		fieldName = generator.CamelCase(fieldName)
 
-		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
+		if strings.EqualFold(goTyp, "*timestamppb.Timestamp") {
 			goTyp = "time.Time"
 			p.useTime = true
 		} else if p.IsMap(field) {
@@ -1338,7 +1338,7 @@ func (p *MongoPlugin) GenerateUpdateAllMethod(message *generator.Descriptor) {
 				p.P(`}`)
 			}
 
-		} else if strings.ToLower(goTyp) == "*timestamp.timestamp" {
+		} else if strings.EqualFold(goTyp, "*timestamppb.Timestamp") {
 			goTyp = "time.Time"
 			p.useTime = true
 
@@ -1654,7 +1654,7 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 		if oneOf && bomField != nil && bomField.Tag.GetMongoObjectId() {
 			goTyp = "primitive.ObjectID"
 		}
-		if oneOf && strings.ToLower(goTyp) == "*timestamp.timestamp" {
+		if oneOf && strings.EqualFold(goTyp, "*timestamppb.Timestamp") {
 			goTyp = "time.Time"
 		}
 
@@ -1681,7 +1681,7 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 		tagString = tagString + "`"
 
 		if oneOf {
-			if strings.ToLower(goTyp) == "*timestamp.timestamp" {
+			if strings.EqualFold(goTyp, "*timestamppb.Timestamp") {
 				p.P(fieldName, ` *time.Time`, tagString)
 				p.useTime = true
 			} else {
@@ -1708,7 +1708,7 @@ func (p *MongoPlugin) generateModelsStructures(message *generator.Descriptor) {
 			p.P(fieldName, ` `, m.GoType, tagString)
 
 		} else if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
-			if strings.ToLower(goTyp) == "*timestamp.timestamp" {
+			if strings.EqualFold(goTyp, "*timestamppb.Timestamp") {
 				p.P(fieldName, ` time.Time`, tagString)
 				p.useTime = true
 			} else {
@@ -1803,7 +1803,7 @@ func (p *MongoPlugin) fieldsToPBStructure(field *descriptor.FieldDescriptorProto
 
 	} else if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
 
-		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
+		if strings.EqualFold(goTyp, "*timestamppb.Timestamp") {
 
 			if oneof {
 
@@ -1929,7 +1929,7 @@ func (p *MongoPlugin) ToMongoGenerateFieldConversion(field *descriptor.FieldDesc
 
 	} else if (field.IsMessage() && !gogoproto.IsCustomType(field) && !gogoproto.IsStdType(field)) || p.IsGroup(field) {
 
-		if strings.ToLower(goTyp) == "*timestamp.timestamp" {
+		if strings.EqualFold(goTyp, "*timestamppb.Timestamp") {
 			p.useTime = true
 
 			if oneof {
